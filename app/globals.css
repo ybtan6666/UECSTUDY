@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gradient-to-br from-red-50 via-yellow-50 to-blue-50 text-gray-900;
+  min-height: 100vh;
+}
+
+input, textarea, select {
+  @apply text-gray-900;
+}
+
+input::placeholder, textarea::placeholder {
+  @apply text-gray-400;
+}
+
+/* UEC Theme Colors */
+.uec-primary {
+  @apply bg-red-600 text-white;
+}
+
+.uec-primary:hover {
+  @apply bg-red-700;
+}
+
+.uec-secondary {
+  @apply bg-yellow-500 text-white;
+}
+
+.uec-secondary:hover {
+  @apply bg-yellow-600;
+}
+
+.uec-accent {
+  @apply bg-blue-600 text-white;
+}
+
+.uec-accent:hover {
+  @apply bg-blue-700;
+}
+
+/* Card styling with UEC theme */
+.uec-card {
+  @apply bg-white rounded-lg shadow-lg border-2 border-red-100;
+}
+
+.uec-card:hover {
+  @apply border-red-300 shadow-xl transition-all;
+}
+
