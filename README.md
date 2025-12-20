@@ -1,51 +1,85 @@
-# UEC Learning Platform
+# UEC Math Q&A Marketplace
 
-A web application where students pay for teacher attention, not just content.
+A minimal MVP web application for paid Mathematics Q&A for Malaysian UEC students. This is a two-sided marketplace where students can post paid questions or book teacher time, and teachers can accept jobs and get paid.
 
 ## Features
 
-- **Course Marketplace**: Teachers create courses, students purchase and access them
-- **Challenge System**: MCQ challenges with virtual coin rewards
-- **Paid Q&A (Mode A)**: Students pay to ask questions with 7-day response guarantee
-- **Book Teacher Time (Mode B)**: Students book consultation slots with teachers
-- **Discussion**: Comments and replies under courses, challenges, and Q&A threads
-- **User Profiles**: Separate views for students and teachers
+### Feature A: Paid Question & Answer (Asynchronous)
+- Students submit math questions via text, image, audio, or video
+- Two modes: select specific teacher or open marketplace
+- Set price (minimum MYR 5) and expected response time (6h, 24h, or 72h)
+- Payment held in escrow until completion
+- Auto-refund if not answered within deadline
+- Follow-up questions supported (treated as new paid sub-orders)
+
+### Feature B: Teacher Booking / Consultation (Synchronous)
+- Students browse teacher availability and book time slots
+- Teachers set available time slots with minimum price
+- Individual or group sessions
+- Submit topic, expectations, and preferred format
+- Full refund if teacher cancels, no refund if student no-shows
+
+### Payment & State Machine
+- Clear states: PENDING, ACCEPTED, ANSWERED, COMPLETED, CANCELLED, EXPIRED, REFUNDED
+- Platform takes 15% commission only on completed orders
+- All transitions logged in OrderLog
+
+### Teacher Ranking
+- Based on endorsements (not star ratings)
+- Students can endorse teachers only once per lifetime, after completed transaction
+- Ranking priority:
+  1. Total endorsements (desc)
+  2. Completed answers in last 30 days (desc)
+  3. Recent activity (desc)
 
 ## Tech Stack
 
-- Next.js 14 (App Router)
-- TypeScript
-- Tailwind CSS
-- Prisma (SQLite)
-- NextAuth.js
-- bcryptjs
+- **Next.js 14** (App Router)
+- **TypeScript**
+- **Prisma** (PostgreSQL)
+- **NextAuth.js** (Authentication)
+- **Tailwind CSS** (Styling)
 
-## Setup
+## Getting Started
 
-1. Install dependencies:
-```bash
-npm install
-```
+### Prerequisites
 
-2. Set up the database:
-```bash
-npx prisma generate
-npx prisma db push
-```
+- Node.js 18+
+- PostgreSQL database
+- npm or yarn
 
-3. Seed the database:
-```bash
-npm run db:seed
-```
+### Installation
 
-4. Run the development server:
-```bash
-npm run dev
-```
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-5. Open [http://localhost:3000](http://localhost:3000)
+3. Set up environment variables (`.env`):
+   ```env
+   DATABASE_URL="postgresql://user:password@localhost:5432/uec_math"
+   NEXTAUTH_SECRET="your-secret-key-here"
+   NEXTAUTH_URL="http://localhost:3000"
+   ```
+
+4. Set up the database:
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   npm run db:seed
+   ```
+
+5. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+6. Open [http://localhost:3000](http://localhost:3000)
 
 ## Demo Accounts
+
+After seeding:
 
 - **Admin**: admin@uec.com / admin123
 - **Teacher 1**: teacher1@uec.com / teacher123
@@ -56,36 +90,46 @@ npm run dev
 ## Project Structure
 
 ```
-/app              - Next.js app router pages
-  /api            - API routes
-  /auth           - Authentication pages
-  /courses        - Course pages
-  /challenges     - Challenge pages
-  /qa             - Q&A pages
-  /profile        - User profile
-/components       - React components
-/lib              - Utilities (Prisma, Auth)
-/prisma           - Database schema and seed
+├── app/
+│   ├── api/
+│   │   ├── questions/        # Question API routes
+│   │   ├── bookings/         # Booking API routes
+│   │   ├── slots/            # Time slot API routes
+│   │   ├── teachers/         # Teacher listing API
+│   │   └── endorsements/     # Endorsement API
+│   ├── questions/            # Question pages
+│   ├── bookings/             # Booking pages
+│   ├── slots/                # Time slot management (teachers)
+│   ├── teachers/             # Teacher listing and profiles
+│   ├── admin/                # Admin panel
+│   └── dashboard/            # User dashboard
+├── components/
+│   └── Navbar.tsx            # Navigation component
+├── lib/
+│   ├── prisma.ts             # Prisma client
+│   ├── auth.ts               # NextAuth configuration
+│   └── utils.ts              # Utility functions
+└── prisma/
+    ├── schema.prisma         # Database schema
+    └── seed.ts               # Seed data
 ```
 
-## Notes
+## Key Business Rules
 
-- Payment logic is mocked (no real payment processing)
-- Refunds are simulated
-- Virtual coins are stored in the database
-- All timestamps use UTC
+1. **Student can cancel question only while status is PENDING**
+2. **Once teacher accepts, question is locked**
+3. **System auto-cancels and refunds if:**
+   - No teacher accepts within selected response window
+   - Question not answered within 7 days
+4. **All payments held in escrow and released only upon completion**
+5. **Follow-up questions treated as new paid sub-orders**
+6. **Group bookings require minimum participants or auto-refund**
+7. **Platform takes commission only from completed orders**
 
 ## Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+See `DEPLOYMENT.md` and `VERCEL_SETUP.md` for deployment instructions.
 
-### Quick Deploy to Vercel:
+## License
 
-1. Push code to GitHub
-2. Go to [vercel.com](https://vercel.com)
-3. Import your GitHub repository
-4. Add environment variables
-5. Deploy!
-
-**Note:** For production, you'll need a hosted database (PostgreSQL/MySQL). SQLite only works locally.
-
+MIT

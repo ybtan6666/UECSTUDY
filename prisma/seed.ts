@@ -12,6 +12,8 @@ function generateAvatar(name: string): string {
 }
 
 async function main() {
+  console.log("Seeding database...")
+
   // Create admin
   const adminPassword = await bcrypt.hash("admin123", 10)
   const admin = await prisma.user.upsert({
@@ -34,11 +36,11 @@ async function main() {
     update: {},
     create: {
       email: "teacher1@uec.com",
-      name: "Dr. Lim",
+      name: "Dr. Lim Wei Ming",
       password: teacher1Password,
       role: "TEACHER",
       uniqueId: "UEC-TEA-0001",
-      avatar: generateAvatar("Dr. Lim"),
+      avatar: generateAvatar("Dr. Lim Wei Ming"),
     },
   })
 
@@ -48,11 +50,11 @@ async function main() {
     update: {},
     create: {
       email: "teacher2@uec.com",
-      name: "Ms. Tan",
+      name: "Ms. Tan Mei Ling",
       password: teacher2Password,
       role: "TEACHER",
       uniqueId: "UEC-TEA-0002",
-      avatar: generateAvatar("Ms. Tan"),
+      avatar: generateAvatar("Ms. Tan Mei Ling"),
     },
   })
 
@@ -63,12 +65,11 @@ async function main() {
     update: {},
     create: {
       email: "student1@uec.com",
-      name: "Ali",
+      name: "Ahmad bin Abdullah",
       password: student1Password,
       role: "STUDENT",
       uniqueId: "UEC-STU-0001",
-      avatar: generateAvatar("Ali"),
-      virtualCoins: 50,
+      avatar: generateAvatar("Ahmad bin Abdullah"),
     },
   })
 
@@ -78,164 +79,193 @@ async function main() {
     update: {},
     create: {
       email: "student2@uec.com",
-      name: "Siti",
+      name: "Lee Xiao Hui",
       password: student2Password,
       role: "STUDENT",
       uniqueId: "UEC-STU-0002",
-      avatar: generateAvatar("Siti"),
-      virtualCoins: 30,
+      avatar: generateAvatar("Lee Xiao Hui"),
     },
   })
 
-  // Create challenges first
-  const challenge1 = await prisma.challenge.create({
-    data: {
-      title: "Math Quiz Level 1",
-      subject: "Mathematics",
-      coinReward: 20,
-      teacherId: teacher1.id,
-      questions: {
-        create: [
-          {
-            question: "What is 2 + 2?",
-            optionA: "3",
-            optionB: "4",
-            optionC: "5",
-            optionD: "6",
-            correctAnswer: "B",
-            order: 0,
-          },
-          {
-            question: "What is 5 × 3?",
-            optionA: "10",
-            optionB: "15",
-            optionC: "20",
-            optionD: "25",
-            correctAnswer: "B",
-            order: 1,
-          },
-        ],
-      },
-    },
-  })
+  // Create sample math questions
+  const deadline1 = new Date()
+  deadline1.setHours(deadline1.getHours() + 24)
 
-  const challenge2 = await prisma.challenge.create({
+  const question1 = await prisma.mathQuestion.create({
     data: {
-      title: "English Grammar Test",
-      subject: "English",
-      coinReward: 15,
-      teacherId: teacher2.id,
-      questions: {
-        create: [
-          {
-            question: "Which is correct?",
-            optionA: "I am go",
-            optionB: "I am going",
-            optionC: "I am went",
-            optionD: "I am goes",
-            correctAnswer: "B",
-            order: 0,
-          },
-        ],
-      },
-    },
-  })
-
-  // Create courses (after challenges)
-  const course1 = await prisma.course.create({
-    data: {
-      title: "Mathematics Fundamentals",
-      subject: "Mathematics",
-      description: "Learn the basics of mathematics including algebra, geometry, and calculus.",
-      price: 99.99,
-      videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      externalUrl: "https://example.com/math-resources",
-      teacherId: teacher1.id,
-    },
-  })
-
-  // Link challenge to course
-  await prisma.courseChallenge.create({
-    data: {
-      courseId: course1.id,
-      challengeId: challenge1.id,
-      order: 0,
-    },
-  })
-
-  const course2 = await prisma.course.create({
-    data: {
-      title: "English Literature",
-      subject: "English",
-      description: "Explore classic and modern English literature.",
-      price: 79.99,
-      videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      teacherId: teacher2.id,
-    },
-  })
-
-  // Link challenge to course
-  await prisma.courseChallenge.create({
-    data: {
-      courseId: course2.id,
-      challengeId: challenge2.id,
-      order: 0,
-    },
-  })
-
-  // Add some ratings
-  await prisma.rating.create({
-    data: {
-      userId: student1.id,
-      courseId: course1.id,
-      rating: 5,
-      review: "Excellent course! Very helpful.",
-    },
-  })
-
-  await prisma.rating.create({
-    data: {
-      userId: student1.id,
-      challengeId: challenge1.id,
-      rating: 4,
-      review: "Good challenge, learned a lot.",
-    },
-  })
-
-  // Create a paid question
-  const deadline = new Date()
-  deadline.setDate(deadline.getDate() + 7)
-
-  const question1 = await prisma.paidQuestion.create({
-    data: {
-      question: "How do I solve quadratic equations?",
+      questionText: "How do I solve quadratic equations using the quadratic formula?",
       studentId: student1.id,
       teacherId: teacher1.id,
-      courseId: course1.id,
-      price: 25.00,
-      deadline,
+      price: 10.0,
+      expectedResponseHours: 24,
+      deadline: deadline1,
+      status: "PENDING",
+      paymentHeld: true,
     },
   })
 
-  // Create time slot
-  const slotStart = new Date()
-  slotStart.setDate(slotStart.getDate() + 1)
-  slotStart.setHours(14, 0, 0, 0)
-  const slotEnd = new Date(slotStart)
-  slotEnd.setHours(15, 0, 0, 0)
+  const deadline2 = new Date()
+  deadline2.setHours(deadline2.getHours() + 6)
 
-  const timeSlot = await prisma.timeSlot.create({
+  const question2 = await prisma.mathQuestion.create({
+    data: {
+      questionText: "Can you explain the concept of derivatives in calculus?",
+      studentId: student2.id,
+      price: 15.0,
+      expectedResponseHours: 6,
+      deadline: deadline2,
+      status: "PENDING",
+      paymentHeld: true,
+    },
+  })
+
+  // Create completed question (for endorsements demo)
+  const completedQuestion = await prisma.mathQuestion.create({
+    data: {
+      questionText: "What is the derivative of x^2?",
+      studentId: student1.id,
+      teacherId: teacher1.id,
+      price: 8.0,
+      expectedResponseHours: 24,
+      deadline: new Date(Date.now() - 1000),
+      status: "COMPLETED",
+      paymentHeld: false,
+      paymentReleased: true,
+      platformFee: 1.2,
+      acceptedAt: new Date(Date.now() - 86400000),
+      answeredAt: new Date(Date.now() - 43200000),
+      completedAt: new Date(Date.now() - 3600000),
+      answerText: "The derivative of x^2 is 2x. This follows from the power rule: d/dx(x^n) = n*x^(n-1).",
+    },
+  })
+
+  // Create endorsement (only if it doesn't exist)
+  const existingEndorsement = await prisma.endorsement.findUnique({
+    where: {
+      studentId_teacherId: {
+        studentId: student1.id,
+        teacherId: teacher1.id,
+      },
+    },
+  })
+
+  if (!existingEndorsement) {
+    await prisma.endorsement.create({
+      data: {
+        studentId: student1.id,
+        teacherId: teacher1.id,
+        questionId: completedQuestion.id,
+      },
+    })
+  }
+
+  // Create time slots
+  const slot1Start = new Date()
+  slot1Start.setDate(slot1Start.getDate() + 1)
+  slot1Start.setHours(10, 0, 0, 0)
+  const slot1End = new Date(slot1Start)
+  slot1End.setHours(11, 0, 0, 0)
+
+  const slot1 = await prisma.timeSlot.create({
     data: {
       teacherId: teacher1.id,
-      startTime: slotStart,
-      endTime: slotEnd,
-      topic: "Mathematics Consultation",
-      maxStudents: 5,
-      zoomLink: "https://zoom.us/j/123456789",
+      startTime: slot1Start,
+      endTime: slot1End,
+      minPrice: 20.0,
+      maxStudents: 1,
+      minStudents: 1,
+      isGroupSession: false,
+      status: "AVAILABLE",
     },
   })
 
-  console.log("Seed data created successfully!")
+  const slot2Start = new Date()
+  slot2Start.setDate(slot2Start.getDate() + 2)
+  slot2Start.setHours(14, 0, 0, 0)
+  const slot2End = new Date(slot2Start)
+  slot2End.setHours(15, 30, 0, 0)
+
+  const slot2 = await prisma.timeSlot.create({
+    data: {
+      teacherId: teacher2.id,
+      startTime: slot2Start,
+      endTime: slot2End,
+      minPrice: 25.0,
+      maxStudents: 5,
+      minStudents: 3,
+      isGroupSession: true,
+      status: "AVAILABLE",
+    },
+  })
+
+  // Create booking
+  const booking = await prisma.booking.create({
+    data: {
+      timeSlotId: slot1.id,
+      studentId: student2.id,
+      teacherId: teacher1.id,
+      topic: "Calculus review for exam",
+      expectations: "Explanation of key concepts",
+      preferredFormat: "video",
+      price: 20.0,
+      status: "CONFIRMED",
+      paymentHeld: true,
+    },
+  })
+
+  // Create order logs
+  await prisma.orderLog.create({
+    data: {
+      userId: student1.id,
+      questionId: question1.id,
+      toStatus: "PENDING",
+      action: "CREATE",
+      metadata: JSON.stringify({ price: 10.0, expectedResponseHours: 24 }),
+    },
+  })
+
+  await prisma.orderLog.create({
+    data: {
+      userId: teacher1.id,
+      questionId: completedQuestion.id,
+      fromStatus: "PENDING",
+      toStatus: "ACCEPTED",
+      action: "ACCEPT",
+    },
+  })
+
+  await prisma.orderLog.create({
+    data: {
+      userId: teacher1.id,
+      questionId: completedQuestion.id,
+      fromStatus: "ACCEPTED",
+      toStatus: "ANSWERED",
+      action: "ANSWER",
+    },
+  })
+
+  await prisma.orderLog.create({
+    data: {
+      userId: student1.id,
+      questionId: completedQuestion.id,
+      fromStatus: "ANSWERED",
+      toStatus: "COMPLETED",
+      action: "COMPLETE",
+      metadata: JSON.stringify({ platformFee: 1.2, teacherPayout: 6.8 }),
+    },
+  })
+
+  await prisma.orderLog.create({
+    data: {
+      userId: student2.id,
+      bookingId: booking.id,
+      toStatus: "CONFIRMED",
+      action: "CREATE",
+      metadata: JSON.stringify({ price: 20.0 }),
+    },
+  })
+
+  console.log("Seed completed!")
   console.log("Admin: admin@uec.com / admin123")
   console.log("Teacher 1: teacher1@uec.com / teacher123")
   console.log("Teacher 2: teacher2@uec.com / teacher123")
@@ -244,12 +274,10 @@ async function main() {
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect()
-  })
-  .catch(async (e) => {
+  .catch((e) => {
     console.error(e)
-    await prisma.$disconnect()
     process.exit(1)
   })
-
+  .finally(async () => {
+    await prisma.$disconnect()
+  })

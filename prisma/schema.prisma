@@ -1,15 +1,18 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Minimal MVP: Paid Mathematics Q&A Marketplace for UEC Students
+// Focus: Two-sided marketplace (students post, teachers answer)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// USER MODEL
+// ============================================
 model User {
   id            String    @id @default(cuid())
   uniqueId      String    @unique // UEC-XXXX format
@@ -18,198 +21,219 @@ model User {
   password      String
   role          String    @default("STUDENT") // "STUDENT", "TEACHER", "ADMIN"
   avatar        String?   // URL or emoji/initials
-  virtualCoins  Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  banned        Boolean   @default(false)
 
   // Relations
-  coursesCreated    Course[]
-  coursesPurchased  CoursePurchase[]
-  challengesCreated Challenge[]
-  challengeAttempts ChallengeAttempt[]
-  paidQuestions     PaidQuestion[]
-  questionAnswers   PaidQuestion[] @relation("TeacherAnswers")
-  timeSlots         TimeSlot[]
-  bookings          Booking[]
-  comments          Comment[]
-  ratings           Rating[]
+  questionsAsStudent    MathQuestion[] @relation("StudentQuestions")
+  questionsAsTeacher    MathQuestion[] @relation("TeacherAnswers")
+  bookingsAsStudent     Booking[]
+  bookingsAsTeacher     Booking[] @relation("TeacherBookings")
+  timeSlots             TimeSlot[]
+  endorsementsGiven    Endorsement[] @relation("Endorser")
+  endorsementsReceived  Endorsement[] @relation("EndorsedTeacher")
+  followUpQuestions     FollowUpQuestion[] @relation("StudentFollowUps")
+  followUpAnswers        FollowUpQuestion[] @relation("TeacherFollowUps")
+  orderLogs             OrderLog[]
 }
 
-model Course {
-  id          String   @id @default(cuid())
-  title       String
-  subject     String
-  description String
-  teacherId   String
-  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  price       Float    @default(0)
-  videoUrl    String?
-  externalUrl String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  purchases   CoursePurchase[]
-  comments    Comment[]
-  questions   PaidQuestion[]
-  ratings     Rating[]
-  courseChallenges CourseChallenge[]
-}
-
-model CoursePurchase {
-  id        String   @id @default(cuid())
-  courseId  String
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  studentId String
-  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([courseId, studentId])
-}
-
-model Challenge {
-  id          String   @id @default(cuid())
-  title       String
-  subject     String
-  teacherId   String
-  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  coinReward  Int      @default(10)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  questions   ChallengeQuestion[]
-  attempts    ChallengeAttempt[]
-  comments    Comment[]
-  ratings     Rating[]
-  courseChallenges CourseChallenge[]
-}
-
-model ChallengeQuestion {
-  id          String   @id @default(cuid())
-  challengeId String
-  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  question    String
-  optionA     String
-  optionB     String
-  optionC     String
-  optionD     String
-  correctAnswer String // "A", "B", "C", or "D"
-  order       Int
-}
-
-model ChallengeAttempt {
-  id          String   @id @default(cuid())
-  challengeId String
-  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  studentId   String
-  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  score       Int
-  totalQuestions Int
-  coinsEarned Int
-  createdAt   DateTime @default(now())
-}
-
-model PaidQuestion {
+// ============================================
+// FEATURE A: PAID QUESTION & ANSWER
+// ============================================
+model MathQuestion {
   id              String   @id @default(cuid())
-  question        String
+  
+  // Question content (multiple formats)
+  questionText    String?  // Text question
+  questionImage   String?  // Image URL
+  questionAudio   String?  // Audio URL
+  questionVideo   String?  // Video URL
+  
+  // Student info
   studentId       String
-  student         User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  teacherId       String
-  teacher         User     @relation("TeacherAnswers", fields: [teacherId], references: [id], onDelete: Cascade)
-  courseId        String?
-  course          Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  price           Float
-  paidAt          DateTime @default(now())
-  deadline        DateTime
+  student         User     @relation("StudentQuestions", fields: [studentId], references: [id], onDelete: Cascade)
+  
+  // Teacher assignment (optional - can be open marketplace)
+  teacherId       String?
+  teacher         User?    @relation("TeacherAnswers", fields: [teacherId], references: [id], onDelete: SetNull)
+  
+  // Pricing & timing
+  price           Float    // Student-set price (must meet platform minimum)
+  expectedResponseHours Int // 6, 24, or 72 hours
+  deadline        DateTime // Auto-calculated: createdAt + expectedResponseHours
+  
+  // Answer content (multiple formats)
+  answerText      String?
+  answerImage     String?
+  answerAudio     String?
+  answerVideo     String?
+  
+  // State machine
+  status          String   @default("PENDING") // PENDING, ACCEPTED, ANSWERED, COMPLETED, CANCELLED, EXPIRED, REFUNDED
+  acceptedAt      DateTime?
   answeredAt      DateTime?
-  answer          String?
-  isRefundable    Boolean  @default(false)
-  refunded        Boolean  @default(false)
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  expiredAt       DateTime?
+  refundedAt      DateTime?
+  
+  // Payment tracking
+  paymentHeld     Boolean  @default(true) // Escrow
+  paymentReleased Boolean  @default(false)
+  platformFee    Float?   // Calculated on completion
+  
+  // Timestamps
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
-  comments        Comment[]
-  ratings         Rating[]
+  
+  // Relations
+  followUps       FollowUpQuestion[]
+  orderLogs       OrderLog[]
 }
 
-model TimeSlot {
-  id          String   @id @default(cuid())
-  teacherId   String
-  teacher     User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  startTime   DateTime
-  endTime     DateTime
-  topic       String?
-  maxStudents Int      @default(1)
-  zoomLink    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// Follow-up questions (treated as new paid sub-orders)
+model FollowUpQuestion {
+  id              String   @id @default(cuid())
+  parentQuestionId String
+  parentQuestion  MathQuestion @relation(fields: [parentQuestionId], references: [id], onDelete: Cascade)
+  
+  studentId       String
+  student         User     @relation("StudentFollowUps", fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId       String
+  teacher         User     @relation("TeacherFollowUps", fields: [teacherId], references: [id], onDelete: Cascade)
+  
+  questionText    String?
+  questionImage   String?
+  questionAudio   String?
+  questionVideo   String?
+  
+  answerText      String?
+  answerImage     String?
+  answerAudio     String?
+  answerVideo     String?
+  
+  price           Float    // Additional payment for follow-up
+  status          String   @default("PENDING") // Same states as MathQuestion
+  acceptedAt      DateTime?
+  answeredAt      DateTime?
+  completedAt     DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
 
-  bookings    Booking[]
+// ============================================
+// FEATURE B: TEACHER BOOKING / CONSULTATION
+// ============================================
+model TimeSlot {
+  id              String   @id @default(cuid())
+  teacherId       String
+  teacher         User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  
+  startTime       DateTime
+  endTime         DateTime
+  minPrice        Float    // Minimum price per slot
+  maxStudents     Int      @default(1) // 1 = individual, >1 = group session
+  minStudents     Int      @default(1) // For group sessions
+  
+  // Group session settings
+  isGroupSession  Boolean  @default(false)
+  meetingLink     String?  // Generated meeting link
+  groupChatLink   String?  // Group chat link
+  
+  status          String   @default("AVAILABLE") // AVAILABLE, BOOKED, CANCELLED, COMPLETED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  bookings        Booking[]
 }
 
 model Booking {
-  id          String   @id @default(cuid())
-  timeSlotId  String
-  timeSlot    TimeSlot @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
-  studentId   String
-  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  topic       String?
-  price       Float
-  paidAt      DateTime @default(now())
-  status      String   @default("CONFIRMED") // CONFIRMED, COMPLETED, CANCELLED
-  feedback    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
+  id              String   @id @default(cuid())
+  
+  timeSlotId      String
+  timeSlot        TimeSlot @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
+  
+  studentId       String
+  student         User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId       String
+  teacher         User     @relation("TeacherBookings", fields: [teacherId], references: [id], onDelete: Cascade)
+  
+  // Student requirements
+  topic           String?  // Topic/questions
+  expectations    String?  // revision / explanation / exam prep
+  preferredFormat String?  // text / voice / video
+  
+  // Pricing
+  price           Float    // Actual paid price (can be higher than minPrice)
+  
+  // State machine
+  status          String   @default("CONFIRMED") // CONFIRMED, COMPLETED, CANCELLED_BY_STUDENT, CANCELLED_BY_TEACHER, NO_SHOW, REFUNDED
+  cancelledAt     DateTime?
+  cancelledBy     String?  // "STUDENT" or "TEACHER"
+  cancellationReason String?
+  completedAt     DateTime?
+  noShowAt        DateTime?
+  refundedAt      DateTime?
+  
+  // Payment tracking
+  paymentHeld     Boolean  @default(true)
+  paymentReleased Boolean  @default(false)
+  platformFee     Float?
+  
+  // Group session tracking
+  isGroupBooking  Boolean  @default(false)
+  groupId         String?  // For grouping multiple bookings
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  orderLogs       OrderLog[]
+  
   @@unique([timeSlotId, studentId])
+  @@index([teacherId])
+  @@index([studentId])
 }
 
-model Comment {
-  id          String   @id @default(cuid())
-  content     String
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId    String?
-  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  challengeId String?
-  challenge   Challenge? @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  questionId  String?
-  question    PaidQuestion? @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  parentId    String?
-  parent      Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies     Comment[] @relation("CommentReplies")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+// ============================================
+// TEACHER RANKING: ENDORSEMENTS
+// ============================================
+model Endorsement {
+  id              String   @id @default(cuid())
+  studentId       String   // Student who endorses
+  student         User     @relation("Endorser", fields: [studentId], references: [id], onDelete: Cascade)
+  teacherId       String   // Teacher being endorsed
+  teacher         User     @relation("EndorsedTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  
+  // Can only endorse after completed transaction
+  questionId      String?  // Related completed question
+  bookingId      String?  // Related completed booking
+  
+  createdAt       DateTime @default(now())
+  
+  @@unique([studentId, teacherId]) // One endorsement per student-teacher pair (lifetime)
+  @@index([teacherId])
+  @@index([studentId])
 }
 
-model Rating {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId    String?
-  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  challengeId String?
-  challenge   Challenge? @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  questionId  String?
-  question    PaidQuestion? @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  rating      Int      // 1-5 stars
-  review      String?  // Optional text review
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([userId, courseId])
-  @@unique([userId, challengeId])
-  @@unique([userId, questionId])
+// ============================================
+// ORDER STATE LOGGING
+// ============================================
+model OrderLog {
+  id              String   @id @default(cuid())
+  userId          String?  // Who triggered the change
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  questionId      String?
+  question        MathQuestion? @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  bookingId      String?
+  booking        Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  fromStatus      String?
+  toStatus        String
+  action          String   // "CREATE", "ACCEPT", "ANSWER", "COMPLETE", "CANCEL", "EXPIRE", "REFUND"
+  metadata        String?  // JSON string for additional info
+  
+  createdAt       DateTime @default(now())
 }
-
-model CourseChallenge {
-  id          String   @id @default(cuid())
-  courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  challengeId String
-  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-
-  @@unique([courseId, challengeId])
-}
-

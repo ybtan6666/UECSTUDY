@@ -26,7 +26,6 @@ export function Navbar() {
         }
       }
     } catch (error) {
-      // Silently fail - user data is optional for navbar
       console.error("Error fetching user data:", error)
     }
   }
@@ -40,158 +39,217 @@ export function Navbar() {
   }
 
   return (
-    <nav className="bg-gradient-to-r from-red-600 to-red-700 shadow-lg border-b-4 border-yellow-400">
+    <nav className="bg-white border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <span className="text-xl sm:text-2xl font-bold text-white">
-              独中统考
-            </span>
-            <span className="text-lg sm:text-xl font-bold text-yellow-300 hidden sm:inline">
-              UEC
-            </span>
+          <Link href="/" className="flex items-center">
+            <span className="text-xl font-bold text-gray-900">UEC Math Q&A</span>
           </Link>
 
           {/* Desktop Navigation */}
-          {session && (
-            <div className="hidden md:flex items-center space-x-4">
-              <Link href="/dashboard" className="text-white hover:text-yellow-300 text-sm font-medium transition-colors">
-                Dashboard
-              </Link>
-              <Link href="/courses" className="text-white hover:text-yellow-300 text-sm font-medium transition-colors">
-                Courses
-              </Link>
-              <Link href="/challenges" className="text-white hover:text-yellow-300 text-sm font-medium transition-colors">
-                Challenges
-              </Link>
-              <Link href="/qa" className="text-white hover:text-yellow-300 text-sm font-medium transition-colors">
-                Q&A
-              </Link>
-            </div>
-          )}
-
-          {/* Right Side - User Menu */}
-          <div className="flex items-center space-x-2">
+          <div className="hidden md:flex items-center space-x-6">
             {session ? (
               <>
-                {/* Desktop User Profile */}
-                <Link href="/profile" className="hidden sm:flex items-center space-x-2 bg-white/10 rounded-lg px-2 py-1.5 hover:bg-white/20 transition-colors">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                      userData?.uniqueId ? getAvatarColor(userData.uniqueId) : "bg-blue-500"
-                    }`}
-                  >
-                    {getInitials(session.user?.name || "U")}
-                  </div>
-                  <div className="hidden lg:block text-left">
-                    <div className="text-white text-xs font-semibold">{session.user?.name}</div>
-                    {userData?.uniqueId && (
-                      <div className="text-yellow-200 text-xs font-mono">{userData.uniqueId}</div>
-                    )}
-                  </div>
+                <Link href="/dashboard" className="text-gray-700 hover:text-gray-900">
+                  Dashboard
                 </Link>
-
-                {/* Mobile Menu Button */}
-                <button
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="md:hidden text-white p-2"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {mobileMenuOpen ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                    )}
-                  </svg>
-                </button>
-
-                <button
-                  onClick={() => signOut()}
-                  className="hidden sm:block px-3 py-1.5 text-xs text-white bg-red-800 rounded hover:bg-red-900 transition-colors"
-                >
-                  Sign Out
-                </button>
+                {session.user.role === "STUDENT" && (
+                  <>
+                    <Link href="/questions" className="text-gray-700 hover:text-gray-900">
+                      Questions
+                    </Link>
+                    <Link href="/bookings" className="text-gray-700 hover:text-gray-900">
+                      Bookings
+                    </Link>
+                    <Link href="/teachers" className="text-gray-700 hover:text-gray-900">
+                      Teachers
+                    </Link>
+                  </>
+                )}
+                {session.user.role === "TEACHER" && (
+                  <>
+                    <Link href="/questions" className="text-gray-700 hover:text-gray-900">
+                      Questions
+                    </Link>
+                    <Link href="/slots" className="text-gray-700 hover:text-gray-900">
+                      Time Slots
+                    </Link>
+                    <Link href="/bookings" className="text-gray-700 hover:text-gray-900">
+                      Bookings
+                    </Link>
+                  </>
+                )}
+                {session.user.role === "ADMIN" && (
+                  <Link href="/admin" className="text-gray-700 hover:text-gray-900">
+                    Admin
+                  </Link>
+                )}
+                <div className="flex items-center space-x-3">
+                  {userData && (
+                    <div className="flex items-center space-x-2">
+                      <div
+                        className={`w-8 h-8 rounded-full ${getAvatarColor(
+                          userData.uniqueId || ""
+                        )} flex items-center justify-center text-white text-xs font-semibold`}
+                      >
+                        {userData.avatar || getInitials(session.user.name || "")}
+                      </div>
+                      <div className="text-sm">
+                        <div className="font-medium text-gray-900">
+                          {userData.uniqueId || session.user.name}
+                        </div>
+                        <div className="text-xs text-gray-500">{session.user.role}</div>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                </div>
               </>
             ) : (
               <>
-                <Link
-                  href="/auth/signin"
-                  className="px-3 py-1.5 text-xs sm:text-sm text-white hover:text-yellow-300 font-medium transition-colors"
-                >
+                <Link href="/auth/signin" className="text-gray-700 hover:text-gray-900">
                   Sign In
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="px-3 py-1.5 text-xs sm:text-sm text-white bg-yellow-500 rounded hover:bg-yellow-600 transition-colors font-medium"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Sign Up
                 </Link>
               </>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-gray-700 hover:text-gray-900"
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                {mobileMenuOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
-        {mobileMenuOpen && session && (
-          <div className="md:hidden py-4 border-t border-red-500">
-            <div className="space-y-2">
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2 text-white hover:bg-white/10 rounded"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/courses"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2 text-white hover:bg-white/10 rounded"
-              >
-                Courses
-              </Link>
-              <Link
-                href="/challenges"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2 text-white hover:bg-white/10 rounded"
-              >
-                Challenges
-              </Link>
-              <Link
-                href="/qa"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2 text-white hover:bg-white/10 rounded"
-              >
-                Q&A
-              </Link>
-              <Link
-                href="/qa/bookings"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2 text-white hover:bg-white/10 rounded"
-              >
-                Bookings
-              </Link>
-              <Link
-                href="/profile"
-                onClick={() => setMobileMenuOpen(false)}
-                className="block px-4 py-2 text-white hover:bg-white/10 rounded"
-              >
-                Profile
-              </Link>
-              <button
-                onClick={() => {
-                  signOut()
-                  setMobileMenuOpen(false)
-                }}
-                className="block w-full text-left px-4 py-2 text-white hover:bg-white/10 rounded"
-              >
-                Sign Out
-              </button>
-            </div>
+        {mobileMenuOpen && (
+          <div className="md:hidden py-4 border-t border-gray-200">
+            {session ? (
+              <div className="space-y-3">
+                <Link
+                  href="/dashboard"
+                  className="block text-gray-700 hover:text-gray-900"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                {session.user.role === "STUDENT" && (
+                  <>
+                    <Link
+                      href="/questions"
+                      className="block text-gray-700 hover:text-gray-900"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Questions
+                    </Link>
+                    <Link
+                      href="/bookings"
+                      className="block text-gray-700 hover:text-gray-900"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Bookings
+                    </Link>
+                    <Link
+                      href="/teachers"
+                      className="block text-gray-700 hover:text-gray-900"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Teachers
+                    </Link>
+                  </>
+                )}
+                {session.user.role === "TEACHER" && (
+                  <>
+                    <Link
+                      href="/questions"
+                      className="block text-gray-700 hover:text-gray-900"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Questions
+                    </Link>
+                    <Link
+                      href="/slots"
+                      className="block text-gray-700 hover:text-gray-900"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Time Slots
+                    </Link>
+                    <Link
+                      href="/bookings"
+                      className="block text-gray-700 hover:text-gray-900"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Bookings
+                    </Link>
+                  </>
+                )}
+                <button
+                  onClick={() => {
+                    signOut({ callbackUrl: "/" })
+                    setMobileMenuOpen(false)
+                  }}
+                  className="block w-full text-left px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Link
+                  href="/auth/signin"
+                  className="block text-gray-700 hover:text-gray-900"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
           </div>
         )}
       </div>
     </nav>
   )
 }
-

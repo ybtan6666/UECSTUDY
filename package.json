@@ -10,7 +10,10 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:migrate": "prisma migrate deploy"
+    "db:migrate": "prisma migrate deploy",
+    "db:setup": "node scripts/setup-db.js",
+    "db:verify": "node scripts/verify-db.js",
+    "db:fix-users": "node scripts/fix-users.js"
   },
   "dependencies": {
     "next": "^14.2.0",

@@ -3,198 +3,253 @@
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
-  const [coins, setCoins] = useState(0)
-  const [checking, setChecking] = useState(true)
+  const router = useRouter()
+  const [stats, setStats] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const checkAuth = async () => {
-      if (status === "loading") {
-        return
-      }
+    if (status === "loading") return
 
-      if (status === "authenticated" && session) {
-        setChecking(false)
-        fetchCoins()
-      } else if (status === "unauthenticated") {
-        // Double-check session
-        const { getSession } = await import("next-auth/react")
-        const currentSession = await getSession()
-        
-        if (currentSession) {
-          // Session exists but wasn't detected, reload
-          window.location.reload()
-        } else {
-          setChecking(false)
-        }
-      }
+    if (status === "unauthenticated") {
+      router.push("/auth/signin")
+      return
     }
 
-    checkAuth()
-  }, [status, session])
+    if (session) {
+      fetchStats()
+    }
+  }, [session, status, router])
 
-  const fetchCoins = async () => {
+  const fetchStats = async () => {
     try {
-      const res = await fetch("/api/profile")
-      if (res.ok) {
-        const profile = await res.json()
-        setCoins(profile.user?.virtualCoins || 0)
+      if (session?.user.role === "STUDENT") {
+        const [questionsRes, bookingsRes] = await Promise.all([
+          fetch("/api/questions?filter=my-questions"),
+          fetch("/api/bookings?filter=my-bookings"),
+        ])
+
+        const questions = questionsRes.ok ? await questionsRes.json() : []
+        const bookings = bookingsRes.ok ? await bookingsRes.json() : []
+
+        setStats({
+          pendingQuestions: questions.filter((q: any) => q.status === "PENDING").length,
+          answeredQuestions: questions.filter((q: any) => q.status === "ANSWERED").length,
+          completedQuestions: questions.filter((q: any) => q.status === "COMPLETED").length,
+          upcomingBookings: bookings.filter((b: any) => b.status === "CONFIRMED").length,
+        })
+      } else if (session?.user.role === "TEACHER") {
+        const [questionsRes, bookingsRes, slotsRes] = await Promise.all([
+          fetch("/api/questions?filter=my-accepted"),
+          fetch("/api/bookings?filter=my-slots"),
+          fetch("/api/slots?filter=my-slots"),
+        ])
+
+        const questions = questionsRes.ok ? await questionsRes.json() : []
+        const bookings = bookingsRes.ok ? await bookingsRes.json() : []
+        const slots = slotsRes.ok ? await slotsRes.json() : []
+
+        setStats({
+          pendingAnswers: questions.filter((q: any) => q.status === "ACCEPTED").length,
+          openQuestions: questions.filter((q: any) => q.status === "PENDING").length,
+          upcomingBookings: bookings.filter((b: any) => b.status === "CONFIRMED").length,
+          availableSlots: slots.filter((s: any) => s.status === "AVAILABLE").length,
+        })
       }
+      setLoading(false)
     } catch (error) {
-      console.error("Error fetching coins:", error)
+      console.error("Error fetching stats:", error)
+      setLoading(false)
     }
   }
 
-  // Wait for session check to complete
-  if (status === "loading" || checking) {
+  if (status === "loading" || loading) {
     return (
-      <div className="text-center py-12">
-        <div className="text-lg">Loading session...</div>
-        <div className="text-sm text-gray-500 mt-2">Please wait...</div>
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="text-center">Loading...</div>
       </div>
     )
   }
 
-  if (status === "unauthenticated" && !checking) {
-    return (
-      <div className="max-w-md mx-auto px-4 py-12">
-        <div className="uec-card p-8 text-center">
-          <h1 className="text-3xl font-bold text-red-600 mb-4">请登入</h1>
-          <h2 className="text-2xl font-bold mb-6 text-gray-700">Please Sign In</h2>
-          <p className="text-gray-600 mb-6">
-            Sign in to access courses, challenges, and Q&A features
-          </p>
-          <Link
-            href="/auth/signin"
-            className="inline-block px-8 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold text-lg mb-4"
-          >
-            登入 Sign In
-          </Link>
-          <p className="text-sm text-gray-500 mt-4">
-            Don't have an account?{" "}
-            <Link href="/auth/signup" className="text-blue-600 hover:underline">
-              Sign up
-            </Link>
-          </p>
-          <div className="mt-6 p-4 bg-gray-50 rounded text-left">
-            <p className="text-sm font-semibold mb-2">Demo Accounts:</p>
-            <p className="text-xs text-gray-600">Student: student1@uec.com / student123</p>
-            <p className="text-xs text-gray-600">Teacher: teacher1@uec.com / teacher123</p>
-          </div>
-        </div>
-      </div>
-    )
+  if (!session) {
+    return null
   }
-
-  const userRole = (session?.user as any)?.role
-  const isStudent = userRole === "STUDENT"
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold text-red-600 mb-2">
-          欢迎回来, {session?.user?.name}!
-        </h1>
-        <p className="text-xl text-gray-600">
-          Welcome back! You have <span className="font-bold text-yellow-600">{coins} 🪙</span> virtual coins
-        </p>
-      </div>
+    <div className="max-w-7xl mx-auto px-4 py-12">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
 
-      {isStudent && (
-        <div className="grid md:grid-cols-3 gap-8 mb-8">
-          {/* Courses */}
-          <Link href="/courses" className="uec-card p-8 text-center transform hover:scale-105 transition-transform">
-            <div className="text-6xl mb-4">📚</div>
-            <h2 className="text-2xl font-bold mb-2 text-red-600">课程 Courses</h2>
-            <p className="text-gray-600 mb-4">
-              Browse and purchase courses from teachers
-            </p>
-            <div className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
-              View Courses →
+      {session.user.role === "STUDENT" && (
+        <div className="space-y-8">
+          <div className="grid md:grid-cols-4 gap-6">
+            <div className="border border-gray-200 rounded-lg p-6">
+              <div className="text-2xl font-bold text-blue-600">
+                {stats?.pendingQuestions || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">Pending Questions</div>
             </div>
-          </Link>
-
-          {/* Challenges */}
-          <Link href="/challenges" className="uec-card p-8 text-center transform hover:scale-105 transition-transform">
-            <div className="text-6xl mb-4">🎯</div>
-            <h2 className="text-2xl font-bold mb-2 text-yellow-600">挑战 Challenges</h2>
-            <p className="text-gray-600 mb-4">
-              Test your knowledge and earn virtual coins
-            </p>
-            <div className="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-semibold">
-              View Challenges →
+            <div className="border border-gray-200 rounded-lg p-6">
+              <div className="text-2xl font-bold text-yellow-600">
+                {stats?.answeredQuestions || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">Answered</div>
             </div>
-          </Link>
-
-          {/* Q&A */}
-          <Link href="/qa" className="uec-card p-8 text-center transform hover:scale-105 transition-transform">
-            <div className="text-6xl mb-4">💬</div>
-            <h2 className="text-2xl font-bold mb-2 text-blue-600">问答 Q&A</h2>
-            <p className="text-gray-600 mb-4">
-              Ask teachers questions or book consultation time
-            </p>
-            <div className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
-              Go to Q&A →
+            <div className="border border-gray-200 rounded-lg p-6">
+              <div className="text-2xl font-bold text-green-600">
+                {stats?.completedQuestions || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">Completed</div>
             </div>
-          </Link>
-        </div>
-      )}
-
-      {!isStudent && (
-        <div className="grid md:grid-cols-3 gap-8 mb-8">
-          <Link href="/courses" className="uec-card p-8 text-center transform hover:scale-105 transition-transform">
-            <div className="text-6xl mb-4">📚</div>
-            <h2 className="text-2xl font-bold mb-2 text-red-600">我的课程 My Courses</h2>
-            <p className="text-gray-600 mb-4">
-              Create and manage your courses
-            </p>
-            <div className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
-              Manage Courses →
+            <div className="border border-gray-200 rounded-lg p-6">
+              <div className="text-2xl font-bold text-purple-600">
+                {stats?.upcomingBookings || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">Upcoming Bookings</div>
             </div>
-          </Link>
-
-          <Link href="/qa" className="uec-card p-8 text-center transform hover:scale-105 transition-transform">
-            <div className="text-6xl mb-4">💬</div>
-            <h2 className="text-2xl font-bold mb-2 text-blue-600">回答问题 Answer Questions</h2>
-            <p className="text-gray-600 mb-4">
-              View and answer student questions
-            </p>
-            <div className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
-              View Questions →
-            </div>
-          </Link>
-
-          <Link href="/qa/slots" className="uec-card p-8 text-center transform hover:scale-105 transition-transform">
-            <div className="text-6xl mb-4">📅</div>
-            <h2 className="text-2xl font-bold mb-2 text-green-600">时间表 Time Slots</h2>
-            <p className="text-gray-600 mb-4">
-              Manage your available time slots
-            </p>
-            <div className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
-              Manage Slots →
-            </div>
-          </Link>
-        </div>
-      )}
-
-      <div className="uec-card p-6 mt-8">
-        <h2 className="text-2xl font-bold mb-4 text-gray-700">账户信息 Account Info</h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <p><strong>Name:</strong> {session?.user?.name}</p>
-            <p><strong>Email:</strong> {session?.user?.email}</p>
-            <p><strong>Role:</strong> {userRole}</p>
           </div>
-          <div className="text-right">
-            <Link href="/profile" className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              View Full Profile →
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Link
+              href="/questions/ask"
+              className="border border-blue-200 rounded-lg p-6 hover:bg-blue-50 transition-colors"
+            >
+              <h2 className="text-xl font-semibold text-blue-600 mb-2">
+                Ask a Question
+              </h2>
+              <p className="text-gray-600">
+                Submit a math question via text, image, audio, or video
+              </p>
+            </Link>
+
+            <Link
+              href="/teachers"
+              className="border border-green-200 rounded-lg p-6 hover:bg-green-50 transition-colors"
+            >
+              <h2 className="text-xl font-semibold text-green-600 mb-2">
+                Browse Teachers
+              </h2>
+              <p className="text-gray-600">
+                View all teachers, their profiles, and book time slots
+              </p>
+            </Link>
+
+            <Link
+              href="/questions"
+              className="border border-gray-200 rounded-lg p-6 hover:bg-gray-50 transition-colors"
+            >
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                My Questions
+              </h2>
+              <p className="text-gray-600">
+                View all your submitted questions and their status
+              </p>
+            </Link>
+
+            <Link
+              href="/bookings"
+              className="border border-gray-200 rounded-lg p-6 hover:bg-gray-50 transition-colors"
+            >
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                My Bookings
+              </h2>
+              <p className="text-gray-600">
+                View all your bookings and consultations
+              </p>
             </Link>
           </div>
         </div>
-      </div>
+      )}
+
+      {session.user.role === "TEACHER" && (
+        <div className="space-y-8">
+          <div className="grid md:grid-cols-4 gap-6">
+            <div className="border border-gray-200 rounded-lg p-6">
+              <div className="text-2xl font-bold text-blue-600">
+                {stats?.pendingAnswers || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">Pending Answers</div>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-6">
+              <div className="text-2xl font-bold text-yellow-600">
+                {stats?.openQuestions || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">Open Questions</div>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-6">
+              <div className="text-2xl font-bold text-green-600">
+                {stats?.upcomingBookings || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">Upcoming Bookings</div>
+            </div>
+            <div className="border border-gray-200 rounded-lg p-6">
+              <div className="text-2xl font-bold text-purple-600">
+                {stats?.availableSlots || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">Available Slots</div>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Link
+              href="/questions"
+              className="border border-blue-200 rounded-lg p-6 hover:bg-blue-50 transition-colors"
+            >
+              <h2 className="text-xl font-semibold text-blue-600 mb-2">
+                Answer Questions
+              </h2>
+              <p className="text-gray-600">
+                View open questions and accept them to answer
+              </p>
+            </Link>
+
+            <Link
+              href="/slots"
+              className="border border-green-200 rounded-lg p-6 hover:bg-green-50 transition-colors"
+            >
+              <h2 className="text-xl font-semibold text-green-600 mb-2">
+                Manage Time Slots
+              </h2>
+              <p className="text-gray-600">
+                Create and manage your available time slots
+              </p>
+            </Link>
+
+            <Link
+              href="/bookings"
+              className="border border-gray-200 rounded-lg p-6 hover:bg-gray-50 transition-colors"
+            >
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                My Bookings
+              </h2>
+              <p className="text-gray-600">
+                View all bookings for your time slots
+              </p>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {session.user.role === "ADMIN" && (
+        <div className="space-y-8">
+          <div className="border border-gray-200 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Admin Panel
+            </h2>
+            <p className="text-gray-600 mb-4">
+              View all transactions, manage refunds, and ban accounts.
+            </p>
+            <Link
+              href="/admin"
+              className="inline-block px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+            >
+              Go to Admin Panel
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-

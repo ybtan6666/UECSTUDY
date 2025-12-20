@@ -25,7 +25,28 @@ export default function SignInPage() {
       })
 
       if (result?.error) {
-        setError("Invalid email or password")
+        console.error("Sign in error:", result.error)
+        
+        // Check if user exists and password is correct
+        try {
+          const checkRes = await fetch("/api/check-user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          })
+          const checkData = await checkRes.json()
+          
+          if (!checkData.exists) {
+            setError(`User not found. Make sure the database is seeded (run: npm run db:seed)`)
+          } else if (!checkData.passwordMatch) {
+            setError(`Invalid password. Try: student123, teacher123, or admin123`)
+          } else {
+            setError(`Sign in failed: ${result.error}. Check server console for details.`)
+          }
+        } catch (checkError) {
+          setError(`Sign in failed: ${result.error}. Make sure the database is seeded (run: npm run db:seed)`)
+        }
+        
         setLoading(false)
       } else if (result?.ok) {
         // Wait for session to be established
@@ -96,12 +117,21 @@ export default function SignInPage() {
             {loading ? "Signing in..." : "登入 Sign In"}
           </button>
         </form>
-        <p className="mt-4 text-sm text-center text-gray-600">
-          Don't have an account?{" "}
-          <Link href="/auth/signup" className="text-blue-600 hover:underline">
-            Sign up
-          </Link>
-        </p>
+        <div className="mt-6 space-y-2">
+          <p className="text-sm text-center text-gray-600">
+            Don't have an account?{" "}
+            <Link href="/auth/signup" className="text-blue-600 hover:underline">
+              Sign up
+            </Link>
+          </p>
+          <div className="border-t pt-4">
+            <p className="text-xs text-center text-gray-500 mb-2">Demo Accounts:</p>
+            <div className="text-xs text-gray-600 space-y-1">
+              <div>Student: student1@uec.com / student123</div>
+              <div>Teacher: teacher1@uec.com / teacher123</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
