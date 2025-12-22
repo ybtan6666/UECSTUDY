@@ -56,7 +56,7 @@ A minimal MVP web application for paid Mathematics Q&A for Malaysian UEC student
    npm install
    ```
 
-3. Set up environment variables (`.env`):
+3. Set up environment variables, create a file name '.env.'(`.env`):
    ```env
    DATABASE_URL="file:./dev.db"
    NEXTAUTH_SECRET="uec-secret-key-change-in-production"
