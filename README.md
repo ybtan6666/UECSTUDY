@@ -58,8 +58,8 @@ A minimal MVP web application for paid Mathematics Q&A for Malaysian UEC student
 
 3. Set up environment variables (`.env`):
    ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/uec_math"
-   NEXTAUTH_SECRET="your-secret-key-here"
+   DATABASE_URL="file:./dev.db"
+   NEXTAUTH_SECRET="uec-secret-key-change-in-production"
    NEXTAUTH_URL="http://localhost:3000"
    ```
 
@@ -76,6 +76,11 @@ A minimal MVP web application for paid Mathematics Q&A for Malaysian UEC student
    ```
 
 6. Open [http://localhost:3000](http://localhost:3000)
+
+7. Check database at [http://localhost:5555](http://localhost:5555) (Prisma Studio, open another terminal):
+   ```bash
+   npx prisma studio
+   ```
 
 ## Demo Accounts
 
