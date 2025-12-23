@@ -87,13 +87,26 @@ export function Navbar() {
                 <div className="flex items-center space-x-3">
                   {userData && (
                     <div className="flex items-center space-x-2">
-                      <div
-                        className={`w-8 h-8 rounded-full ${getAvatarColor(
-                          userData.uniqueId || ""
-                        )} flex items-center justify-center text-white text-xs font-semibold`}
-                      >
-                        {userData.avatar || getInitials(session.user.name || "")}
+                      {/* ✅ FIX START: Handle Image vs Initials properly */}
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200">
+                        {userData.avatar ? (
+                          <img 
+                            src={userData.avatar} 
+                            alt="Profile" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className={`w-full h-full ${getAvatarColor(
+                              userData.uniqueId || ""
+                            )} flex items-center justify-center text-white text-xs font-semibold`}
+                          >
+                            {getInitials(session.user.name || "")}
+                          </div>
+                        )}
                       </div>
+                      {/* ✅ FIX END */}
+                      
                       <div className="text-sm">
                         <div className="font-medium text-gray-900">
                           {userData.uniqueId || session.user.name}

@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
-import { generateUECId, generateAvatar } from "@/lib/utils"
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password, role } = await req.json()
+    const body = await req.json()
+    const { email, name, password, role } = body
 
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      )
+    if (!email || !name || !password) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
     const existingUser = await prisma.user.findUnique({
@@ -19,55 +16,30 @@ export async function POST(req: Request) {
     })
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: "Email already exists" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "User already exists" }, { status: 400 })
     }
 
-    // Generate unique ID - check for existing to avoid duplicates
-    let uniqueId: string
-    let attempts = 0
-    do {
-      const userCount = await prisma.user.count({
-        where: { role: role || "STUDENT" },
-      })
-      uniqueId = generateUECId(role || "STUDENT", userCount + attempts)
-      attempts++
-      
-      // Check if this ID already exists
-      const existing = await prisma.user.findUnique({
-        where: { uniqueId },
-      })
-      
-      if (!existing) break
-      if (attempts > 100) {
-        // Fallback: use timestamp
-        uniqueId = `UEC-${role === "STUDENT" ? "STU" : role === "TEACHER" ? "TEA" : "ADM"}-${Date.now()}`
-        break
-      }
-    } while (true)
     const hashedPassword = await bcrypt.hash(password, 10)
-    const avatar = generateAvatar(name)
-
-    await prisma.user.create({
+    
+    // Create the user
+    const user = await prisma.user.create({
       data: {
-        name,
         email,
+        name,
         password: hashedPassword,
         role: role || "STUDENT",
-        uniqueId,
-        avatar,
+        uniqueId: `UEC-${Math.floor(1000 + Math.random() * 9000)}`, // Simple ID generation
       },
     })
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
+    // 🟢 CHANGE: Return the user object (containing the ID)
+    return NextResponse.json({ 
+      message: "User created successfully", 
+      user: { id: user.id } 
+    }, { status: 201 })
+
+  } catch (error: any) {
     console.error("Signup error:", error)
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
-

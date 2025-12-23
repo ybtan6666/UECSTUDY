@@ -14,7 +14,8 @@ export default function SignUpPage() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    const roleParam = searchParams.get("role")
+    // Check if searchParams exists before using .get (good safety practice)
+    const roleParam = searchParams?.get("role")
     if (roleParam === "teacher") {
       setRole("TEACHER")
     }
@@ -24,17 +25,28 @@ export default function SignUpPage() {
     e.preventDefault()
     setError("")
 
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, role }),
-    })
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, role }),
+      })
 
-    if (res.ok) {
-      router.push("/auth/signin")
-    } else {
       const data = await res.json()
-      setError(data.error || "Sign up failed")
+
+      if (res.ok) {
+        // Safety check to ensure data.user.id exists
+        if (data.user && data.user.id) {
+           router.push(`/auth/complete-profile?userId=${data.user.id}`)
+        } else {
+           // If signup succeeded but no ID returned, just go to login
+           router.push("/auth/signin")
+        }
+      } else {
+        setError(data.error || "Sign up failed")
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.")
     }
   }
 
@@ -114,4 +126,3 @@ export default function SignUpPage() {
     </div>
   )
 }
-

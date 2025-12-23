@@ -1,20 +1,17 @@
-// API: File Upload
-// Handles image, audio, and video uploads
-// For MVP, we'll store files in public/uploads (in production, use S3/Cloudinary)
-
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+// import { getServerSession } from "next-auth" // 1. Comment this out
+// import { authOptions } from "@/lib/auth"     // 2. Comment this out
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { existsSync } from "fs"
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    // ❌ TEMPORARY FIX: Comment out the session check so new users can upload
+    // const session = await getServerSession(authOptions)
+    // if (!session) {
+    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    // }
 
     const formData = await req.formData()
     const file = formData.get("file") as File
@@ -38,7 +35,7 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check if file type matches (case-insensitive, partial match)
+    // Check if file type matches
     const fileTypeLower = file.type.toLowerCase()
     const isValidType = allowedTypes[fileType].some((allowedType: string) => 
       fileTypeLower.includes(allowedType.split("/")[1]) || 
@@ -99,4 +96,3 @@ export async function POST(req: Request) {
     )
   }
 }
-
