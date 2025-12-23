@@ -30,10 +30,19 @@ export default function SignUpPage() {
       body: JSON.stringify({ name, email, password, role }),
     })
 
+    const data = await res.json()
+
     if (res.ok) {
-      router.push("/auth/signin")
+      // If teacher, redirect to verification page
+      if (role === "TEACHER" && data.requiresVerification) {
+        // Store email for verification page
+        localStorage.setItem("teacherSignupEmail", email)
+        router.push(`/auth/verify-teacher?email=${encodeURIComponent(email)}`)
+      } else {
+        // Student signup complete, go to sign in
+        router.push("/auth/signin")
+      }
     } else {
-      const data = await res.json()
       setError(data.error || "Sign up failed")
     }
   }

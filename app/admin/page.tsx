@@ -38,16 +38,34 @@ type User = {
   }
 }
 
+type VerificationCode = {
+  id: string
+  code: string
+  used: boolean
+  usedBy?: string
+  usedAt?: string
+  createdAt: string
+  usedByUser?: {
+    id: string
+    name: string
+    email: string
+    uniqueId: string
+  }
+}
+
 export default function AdminPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<"transactions" | "users">("transactions")
+  const [activeTab, setActiveTab] = useState<"transactions" | "users" | "verification-codes">("transactions")
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [users, setUsers] = useState<User[]>([])
+  const [verificationCodes, setVerificationCodes] = useState<VerificationCode[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [refundReason, setRefundReason] = useState("")
   const [refundingId, setRefundingId] = useState<string | null>(null)
+  const [codeFilter, setCodeFilter] = useState<"all" | "used" | "unused">("all")
+  const [generatingCode, setGeneratingCode] = useState(false)
 
   useEffect(() => {
     if (status === "loading") return
@@ -67,11 +85,18 @@ export default function AdminPage() {
           const data = await res.json()
           setTransactions(data.transactions || [])
         }
-      } else {
+      } else if (activeTab === "users") {
         const res = await fetch(`/api/admin/users?search=${encodeURIComponent(searchQuery)}`)
         if (res.ok) {
           const data = await res.json()
           setUsers(data.users || [])
+        }
+      } else if (activeTab === "verification-codes") {
+        const usedParam = codeFilter === "used" ? "true" : codeFilter === "unused" ? "false" : ""
+        const res = await fetch(`/api/admin/verification-codes${usedParam ? `?used=${usedParam}` : ""}`)
+        if (res.ok) {
+          const data = await res.json()
+          setVerificationCodes(data.codes || [])
         }
       }
     } catch (error) {
@@ -88,8 +113,10 @@ export default function AdminPage() {
         fetchData()
       }, 300)
       return () => clearTimeout(timer)
+    } else if (activeTab === "verification-codes") {
+      fetchData()
     }
-  }, [searchQuery, activeTab])
+  }, [searchQuery, activeTab, codeFilter])
 
   const handleRefund = async (type: string, id: string) => {
     if (!refundReason.trim()) {
@@ -146,6 +173,29 @@ export default function AdminPage() {
       }
     } catch (error) {
       alert("An error occurred")
+    }
+  }
+
+  const handleGenerateCode = async () => {
+    setGeneratingCode(true)
+    try {
+      const res = await fetch("/api/admin/verification-codes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        alert(`Verification code generated: ${data.code}`)
+        fetchData()
+      } else {
+        const error = await res.json()
+        alert(error.error || "Failed to generate code")
+      }
+    } catch (error) {
+      alert("An error occurred")
+    } finally {
+      setGeneratingCode(false)
     }
   }
 
@@ -216,6 +266,16 @@ export default function AdminPage() {
             }`}
           >
             User Management
+          </button>
+          <button
+            onClick={() => setActiveTab("verification-codes")}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "verification-codes"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            Verification Codes
           </button>
         </nav>
       </div>
@@ -454,6 +514,131 @@ export default function AdminPage() {
                         >
                           {user.banned ? "Unban" : "Ban"}
                         </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Verification Codes Tab */}
+      {activeTab === "verification-codes" && (
+        <div>
+          <div className="mb-6 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">Verification Codes</h2>
+              <p className="text-sm text-gray-600">
+                Generate and manage 6-digit verification codes for teacher registration
+              </p>
+            </div>
+            <button
+              onClick={handleGenerateCode}
+              disabled={generatingCode}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {generatingCode ? "Generating..." : "Generate New Code"}
+            </button>
+          </div>
+
+          <div className="mb-4">
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setCodeFilter("all")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  codeFilter === "all"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setCodeFilter("unused")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  codeFilter === "unused"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                Unused
+              </button>
+              <button
+                onClick={() => setCodeFilter("used")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  codeFilter === "used"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                Used
+              </button>
+            </div>
+          </div>
+
+          {verificationCodes.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              No verification codes found. Generate your first code to get started.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Code
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created At
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Used At
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Used By
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {verificationCodes.map((code) => (
+                    <tr key={code.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-lg font-mono font-semibold text-gray-900">
+                          {code.code}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {code.used ? (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                            Used
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            Available
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatDate(code.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {code.usedAt ? formatDate(code.usedAt) : "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {code.usedByUser ? (
+                          <div>
+                            <div className="font-medium">{code.usedByUser.name}</div>
+                            <div className="text-xs text-gray-400">{code.usedByUser.email}</div>
+                            <div className="text-xs text-gray-400">{code.usedByUser.uniqueId}</div>
+                          </div>
+                        ) : (
+                          "-"
+                        )}
                       </td>
                     </tr>
                   ))}

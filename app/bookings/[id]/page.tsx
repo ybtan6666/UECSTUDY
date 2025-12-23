@@ -11,6 +11,7 @@ export default function BookingDetailPage() {
   const [booking, setBooking] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === "loading") return
@@ -37,6 +38,41 @@ export default function BookingDetailPage() {
     }
   }
 
+  // Calculate remaining hours until booking start time
+  const getRemainingHours = (startTime: string) => {
+    const now = new Date()
+    const start = new Date(startTime)
+    const diffMs = start.getTime() - now.getTime()
+    const diffHours = diffMs / (1000 * 60 * 60)
+    return diffHours
+  }
+
+  // Check if cancellation is allowed (must be at least 24 hours before)
+  const canCancel = (startTime: string) => {
+    const remainingHours = getRemainingHours(startTime)
+    return remainingHours >= 24
+  }
+
+  // Format remaining time display
+  const formatRemainingTime = (startTime: string) => {
+    const remainingHours = getRemainingHours(startTime)
+    if (remainingHours < 0) {
+      return "Past"
+    } else if (remainingHours < 1) {
+      const minutes = Math.floor(remainingHours * 60)
+      return `${minutes} minutes`
+    } else if (remainingHours < 24) {
+      return `${Math.floor(remainingHours)} hours`
+    } else {
+      const days = Math.floor(remainingHours / 24)
+      const hours = Math.floor(remainingHours % 24)
+      if (days > 0) {
+        return `${days} day${days > 1 ? "s" : ""} ${hours > 0 ? `${hours} hour${hours > 1 ? "s" : ""}` : ""}`
+      }
+      return `${hours} hours`
+    }
+  }
+
   const handleAction = async (action: string, data?: any) => {
     setActionLoading(true)
     try {
@@ -47,6 +83,12 @@ export default function BookingDetailPage() {
       })
 
       if (res.ok) {
+        if (action === "CANCEL_BY_STUDENT" || action === "CANCEL_BY_TEACHER") {
+          setSuccessMessage("Booking cancelled successfully!")
+          setTimeout(() => {
+            setSuccessMessage(null)
+          }, 5000)
+        }
         fetchBooking()
       } else {
         const error = await res.json()
@@ -61,12 +103,15 @@ export default function BookingDetailPage() {
 
   const getStatusColor = (status: string) => {
     const colors: any = {
-      CONFIRMED: "bg-blue-100 text-blue-800",
+      PENDING: "bg-yellow-100 text-yellow-800",
+      ACCEPTED: "bg-blue-100 text-blue-800",
       COMPLETED: "bg-green-100 text-green-800",
+      CANCELLED: "bg-gray-100 text-gray-800",
       CANCELLED_BY_STUDENT: "bg-gray-100 text-gray-800",
       CANCELLED_BY_TEACHER: "bg-orange-100 text-orange-800",
       NO_SHOW: "bg-red-100 text-red-800",
       REFUNDED: "bg-yellow-100 text-yellow-800",
+      EXPIRED: "bg-red-100 text-red-800",
     }
     return colors[status] || "bg-gray-100 text-gray-800"
   }
@@ -81,9 +126,19 @@ export default function BookingDetailPage() {
 
   const isStudent = session?.user.role === "STUDENT" && booking.studentId === session.user.id
   const isTeacher = session?.user.role === "TEACHER" && booking.teacherId === session.user.id
+  const startTime = booking.timeSlot.startTime
+  const remainingHours = getRemainingHours(startTime)
+  const isUpcoming = remainingHours > 0
+  const canCancelBooking = canCancel(startTime) && (booking.status === "ACCEPTED" || booking.status === "PENDING")
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
+      {successMessage && (
+        <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+          {successMessage}
+        </div>
+      )}
+
       <div className="mb-6">
         <span
           className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
@@ -93,6 +148,11 @@ export default function BookingDetailPage() {
           {booking.status}
         </span>
         <span className="ml-4 text-gray-600">MYR {booking.price.toFixed(2)}</span>
+        {isUpcoming && (
+          <span className="ml-4 text-blue-600 font-medium">
+            {formatRemainingTime(startTime)} remaining
+          </span>
+        )}
       </div>
 
       <div className="border border-gray-200 rounded-lg p-6 mb-6">
@@ -134,39 +194,42 @@ export default function BookingDetailPage() {
       </div>
 
       {/* Actions */}
-      {(isStudent || isTeacher) && booking.status === "CONFIRMED" && (
+      {(isStudent || isTeacher) && booking.status === "COMPLETED" && (
         <div className="border border-gray-200 rounded-lg p-6 mb-6">
-          <button
-            onClick={() => {
-              if (confirm("Mark this booking as completed?")) {
-                handleAction("COMPLETE")
-              }
-            }}
-            disabled={actionLoading}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-          >
-            Mark as Completed
-          </button>
+          <p className="text-gray-600">This booking has been completed.</p>
         </div>
       )}
 
-      {isStudent && booking.status === "CONFIRMED" && (
+      {isStudent && canCancelBooking && (
         <div className="border border-gray-200 rounded-lg p-6 mb-6">
-          <button
-            onClick={() => {
-              if (confirm("Cancel this booking? (No refund)")) {
-                handleAction("CANCEL_BY_STUDENT", { reason: "Student cancellation" })
-              }
-            }}
-            disabled={actionLoading}
-            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-          >
-            Cancel Booking
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                if (confirm("Cancel this booking? (No refund)")) {
+                  handleAction("CANCEL_BY_STUDENT", { reason: "Student cancellation" })
+                }
+              }}
+              disabled={actionLoading}
+              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            >
+              Cancel Booking
+            </button>
+            <p className="text-sm text-gray-500">
+              Note: Cancellation is only allowed at least 24 hours before the booking time.
+            </p>
+          </div>
         </div>
       )}
 
-      {isTeacher && booking.status === "CONFIRMED" && (
+      {isStudent && !canCancelBooking && isUpcoming && booking.status !== "CANCELLED" && booking.status !== "COMPLETED" && (
+        <div className="border border-gray-200 rounded-lg p-6 mb-6">
+          <p className="text-sm text-gray-500">
+            Cancellation is only allowed at least 24 hours before the booking time.
+          </p>
+        </div>
+      )}
+
+      {isTeacher && canCancelBooking && (
         <div className="border border-gray-200 rounded-lg p-6 mb-6">
           <div className="space-y-3">
             <button
@@ -179,6 +242,35 @@ export default function BookingDetailPage() {
               className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
             >
               Cancel Booking (Refund)
+            </button>
+            <p className="text-sm text-gray-500">
+              Note: Cancellation is only allowed at least 24 hours before the booking time.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isTeacher && !canCancelBooking && isUpcoming && booking.status !== "CANCELLED" && booking.status !== "COMPLETED" && (
+        <div className="border border-gray-200 rounded-lg p-6 mb-6">
+          <p className="text-sm text-gray-500">
+            Cancellation is only allowed at least 24 hours before the booking time.
+          </p>
+        </div>
+      )}
+
+      {isTeacher && booking.status === "ACCEPTED" && (
+        <div className="border border-gray-200 rounded-lg p-6 mb-6">
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                if (confirm("Mark this booking as completed?")) {
+                  handleAction("COMPLETE")
+                }
+              }}
+              disabled={actionLoading}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              Mark as Completed
             </button>
             <button
               onClick={() => {

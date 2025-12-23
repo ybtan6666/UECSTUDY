@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 10)
     const avatar = generateAvatar(name)
 
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         name,
         email,
@@ -60,6 +60,15 @@ export async function POST(req: Request) {
         avatar,
       },
     })
+
+    // If teacher, return success but indicate verification is needed
+    if (role === "TEACHER") {
+      return NextResponse.json({
+        success: true,
+        requiresVerification: true,
+        email: user.email,
+      })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
