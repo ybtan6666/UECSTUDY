@@ -141,62 +141,37 @@ export async function PATCH(
         if (session.user.role !== "STUDENT" || booking.studentId !== session.user.id) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 })
         }
-        if (booking.status !== "CONFIRMED") {
+        if (booking.status !== "ACCEPTED" && booking.status !== "PENDING") {
           return NextResponse.json(
-            { error: "Can only cancel confirmed bookings" },
+            { error: "Can only cancel accepted or pending bookings" },
             { status: 400 }
           )
+        }
+
+        // Check 24-hour rule
+        const timeSlot = await prisma.timeSlot.findUnique({
+          where: { id: booking.timeSlotId },
+        })
+        if (timeSlot) {
+          const startTime = new Date(timeSlot.startTime)
+          const now = new Date()
+          const hoursUntilStart = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+          if (hoursUntilStart < 24) {
+            return NextResponse.json(
+              { error: "Cancellation is only allowed at least 24 hours before the booking time" },
+              { status: 400 }
+            )
+          }
         }
 
         updatedBooking = await prisma.booking.update({
           where: { id: params.id },
           data: {
-            status: "CANCELLED_BY_STUDENT",
+            status: "CANCELLED",
             cancelledAt: new Date(),
             cancelledBy: "STUDENT",
             cancellationReason: data.reason || null,
-            paymentHeld: false,
-          },
-        })
-
-        // Free up time slot
-        await prisma.timeSlot.update({
-          where: { id: booking.timeSlotId },
-          data: { status: "AVAILABLE" },
-        })
-
-        await prisma.orderLog.create({
-          data: {
-            userId: session.user.id,
-            bookingId: booking.id,
-            fromStatus: "CONFIRMED",
-            toStatus: "CANCELLED_BY_STUDENT",
-            action: "CANCEL",
-            metadata: JSON.stringify({ reason: data.reason }),
-          },
-        })
-        break
-
-      case "CANCEL_BY_TEACHER":
-        // Teacher cancels (full refund)
-        if (session.user.role !== "TEACHER" || booking.teacherId !== session.user.id) {
-          return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-        }
-        if (booking.status !== "CONFIRMED") {
-          return NextResponse.json(
-            { error: "Can only cancel confirmed bookings" },
-            { status: 400 }
-          )
-        }
-
-        updatedBooking = await prisma.booking.update({
-          where: { id: params.id },
-          data: {
-            status: "CANCELLED_BY_TEACHER",
-            cancelledAt: new Date(),
-            cancelledBy: "TEACHER",
-            cancellationReason: data.reason || null,
-            paymentHeld: false,
+            paymentStatus: "REFUNDED",
             refundedAt: new Date(),
           },
         })
@@ -211,10 +186,68 @@ export async function PATCH(
           data: {
             userId: session.user.id,
             bookingId: booking.id,
-            fromStatus: "CONFIRMED",
-            toStatus: "CANCELLED_BY_TEACHER",
+            fromStatus: booking.status,
+            toStatus: "CANCELLED",
             action: "CANCEL",
-            metadata: JSON.stringify({ reason: data.reason, refunded: true }),
+            metadata: JSON.stringify({ reason: data.reason, cancelledBy: "STUDENT" }),
+          },
+        })
+        break
+
+      case "CANCEL_BY_TEACHER":
+        // Teacher cancels (full refund)
+        if (session.user.role !== "TEACHER" || booking.teacherId !== session.user.id) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+        }
+        if (booking.status !== "ACCEPTED" && booking.status !== "PENDING") {
+          return NextResponse.json(
+            { error: "Can only cancel accepted or pending bookings" },
+            { status: 400 }
+          )
+        }
+
+        // Check 24-hour rule
+        const teacherTimeSlot = await prisma.timeSlot.findUnique({
+          where: { id: booking.timeSlotId },
+        })
+        if (teacherTimeSlot) {
+          const startTime = new Date(teacherTimeSlot.startTime)
+          const now = new Date()
+          const hoursUntilStart = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+          if (hoursUntilStart < 24) {
+            return NextResponse.json(
+              { error: "Cancellation is only allowed at least 24 hours before the booking time" },
+              { status: 400 }
+            )
+          }
+        }
+
+        updatedBooking = await prisma.booking.update({
+          where: { id: params.id },
+          data: {
+            status: "CANCELLED",
+            cancelledAt: new Date(),
+            cancelledBy: "TEACHER",
+            cancellationReason: data.reason || null,
+            paymentStatus: "REFUNDED",
+            refundedAt: new Date(),
+          },
+        })
+
+        // Free up time slot
+        await prisma.timeSlot.update({
+          where: { id: booking.timeSlotId },
+          data: { status: "AVAILABLE" },
+        })
+
+        await prisma.orderLog.create({
+          data: {
+            userId: session.user.id,
+            bookingId: booking.id,
+            fromStatus: booking.status,
+            toStatus: "CANCELLED",
+            action: "CANCEL",
+            metadata: JSON.stringify({ reason: data.reason, cancelledBy: "TEACHER", refunded: true }),
           },
         })
         break

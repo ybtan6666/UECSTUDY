@@ -202,6 +202,22 @@ model Booking {
 }
 
 // ============================================
+// TEACHER VERIFICATION CODE
+// ============================================
+model VerificationCode {
+  id          String   @id @default(cuid())
+  code        String   @unique // 6-digit code
+  used        Boolean  @default(false)
+  usedBy      String?  // User ID who used this code
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime? // Optional expiration
+
+  @@index([code])
+  @@index([used])
+}
+
+// ============================================
 // TEACHER RANKING: ENDORSEMENTS
 // ============================================
 model Endorsement {
