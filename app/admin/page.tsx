@@ -7,6 +7,7 @@ import Link from "next/link"
 
 type Transaction = {
   id: string
+  orderNumber?: string
   type: "BOOKING" | "QUESTION"
   student: any
   teacher: any
@@ -298,6 +299,9 @@ export default function AdminPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Order #
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -326,6 +330,13 @@ export default function AdminPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {transactions.map((tx) => (
                     <tr key={tx.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {tx.orderNumber ? (
+                          <span className="font-mono font-semibold text-blue-600">{tx.orderNumber}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatDate(tx.createdAt)}
                       </td>

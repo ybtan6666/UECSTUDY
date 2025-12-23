@@ -52,11 +52,12 @@ export async function POST(req: Request) {
         },
       })
 
-      // Log the refund
+      // Log the refund with order number
       await prisma.orderLog.create({
         data: {
           userId: session.user.id,
           bookingId: id,
+          orderNumber: updatedBooking.orderNumber, // Include current order number
           fromStatus: booking.status,
           toStatus: "REFUNDED",
           action: "REFUND",
@@ -102,11 +103,12 @@ export async function POST(req: Request) {
         },
       })
 
-      // Log the refund
+      // Log the refund with order number
       await prisma.orderLog.create({
         data: {
           userId: session.user.id,
           questionId: id,
+          orderNumber: updatedQuestion.orderNumber, // Include current order number
           fromStatus: question.status,
           toStatus: "REFUNDED",
           action: "REFUND",

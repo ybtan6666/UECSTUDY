@@ -6,6 +6,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { generateOrderNumber } from "@/lib/utils"
 
 const PLATFORM_MIN_PRICE = 5.00 // Minimum price in MYR
 const PLATFORM_FEE_RATE = 0.15 // 15% commission
@@ -68,9 +69,13 @@ export async function POST(req: Request) {
     const deadline = new Date()
     deadline.setHours(deadline.getHours() + expectedResponseHours)
 
+    // Generate unique order number
+    const orderNumber = await generateOrderNumber(prisma)
+
     // Create question
     const question = await prisma.mathQuestion.create({
       data: {
+        orderNumber,
         questionText: questionText || null,
         questionImage: questionImage || null,
         questionAudio: questionAudio || null,
@@ -85,11 +90,12 @@ export async function POST(req: Request) {
       },
     })
 
-    // Log order creation
+    // Log order creation with order number
     await prisma.orderLog.create({
       data: {
         userId: session.user.id,
         questionId: question.id,
+        orderNumber: orderNumber, // Include order number
         toStatus: "PENDING",
         action: "CREATE",
         metadata: JSON.stringify({ price, expectedResponseHours }),

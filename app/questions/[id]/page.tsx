@@ -92,6 +92,12 @@ export default function QuestionDetailPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       <div className="mb-6">
+        {question.orderNumber && (
+          <div className="mb-2">
+            <span className="text-sm font-semibold text-gray-700">Order Number: </span>
+            <span className="text-sm font-mono font-bold text-blue-600">{question.orderNumber}</span>
+          </div>
+        )}
         <span
           className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
             question.status

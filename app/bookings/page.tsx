@@ -175,23 +175,28 @@ export default function BookingsPage() {
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                          booking.status
-                        )}`}
-                      >
-                        {booking.status}
+                  <div className="flex items-center space-x-3 mb-2">
+                    {booking.orderNumber && (
+                      <span className="text-xs font-mono font-semibold text-blue-600">
+                        {booking.orderNumber}
                       </span>
-                      <span className="text-sm text-gray-600">
-                        MYR {booking.price.toFixed(2)}
+                    )}
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+                        booking.status
+                      )}`}
+                    >
+                      {booking.status}
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      MYR {booking.price.toFixed(2)}
+                    </span>
+                    {isUpcoming && (
+                      <span className="text-sm font-medium text-blue-600">
+                        {formatRemainingTime(startTime)} remaining
                       </span>
-                      {isUpcoming && (
-                        <span className="text-sm font-medium text-blue-600">
-                          {formatRemainingTime(startTime)} remaining
-                        </span>
-                      )}
-                    </div>
+                    )}
+                  </div>
                     <div className="text-gray-900 font-medium mb-2">
                       {new Date(booking.timeSlot.startTime).toLocaleString()} -{" "}
                       {new Date(booking.timeSlot.endTime).toLocaleString()}

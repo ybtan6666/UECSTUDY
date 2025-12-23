@@ -43,6 +43,7 @@ model User {
 // ============================================
 model MathQuestion {
   id              String   @id @default(cuid())
+  orderNumber     String?  @unique // Unique order number (ORD-000001, ORD-000002, etc.)
   
   // Question content (multiple formats)
   questionText    String?  // Text question
@@ -90,6 +91,8 @@ model MathQuestion {
   // Relations
   followUps       FollowUpQuestion[]
   orderLogs       OrderLog[]
+  
+  @@index([orderNumber])
 }
 
 // Follow-up questions (treated as new paid sub-orders)
@@ -151,6 +154,7 @@ model TimeSlot {
 
 model Booking {
   id              String   @id @default(cuid())
+  orderNumber     String?  @unique // Unique order number (ORD-000001, ORD-000002, etc.)
   
   timeSlotId      String
   timeSlot        TimeSlot @relation(fields: [timeSlotId], references: [id], onDelete: Cascade)
@@ -199,6 +203,7 @@ model Booking {
   @@unique([timeSlotId, studentId])
   @@index([teacherId])
   @@index([studentId])
+  @@index([orderNumber])
 }
 
 // ============================================
@@ -251,10 +256,16 @@ model OrderLog {
   bookingId      String?
   booking        Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   
+  orderNumber     String?  // Order number at the time of this log entry (for filtering history by order number)
+  
   fromStatus      String?
   toStatus        String
-  action          String   // "CREATE", "ACCEPT", "ANSWER", "COMPLETE", "CANCEL", "EXPIRE", "REFUND"
+  action          String   // "CREATE", "ACCEPT", "ANSWER", "COMPLETE", "CANCEL", "EXPIRE", "REFUND", "REBOOK"
   metadata        String?  // JSON string for additional info
   
   createdAt       DateTime @default(now())
+  
+  @@index([orderNumber])
+  @@index([bookingId, orderNumber])
+  @@index([questionId, orderNumber])
 }

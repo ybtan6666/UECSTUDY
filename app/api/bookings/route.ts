@@ -6,6 +6,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { generateOrderNumber } from "@/lib/utils"
 
 const PLATFORM_FEE_RATE = 0.15
 
@@ -64,20 +65,83 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check if student already booked this slot
-    const existingBooking = await prisma.booking.findFirst({
+    // Check if student already has an active booking for this slot
+    const existingActiveBooking = await prisma.booking.findFirst({
       where: {
         timeSlotId,
         studentId: session.user.id,
-        status: { notIn: ["CANCELLED", "REFUNDED"] },
+        status: { notIn: ["CANCELLED", "REFUNDED", "EXPIRED"] },
       },
     })
 
-    if (existingBooking) {
+    if (existingActiveBooking) {
       return NextResponse.json(
         { error: "You have already booked this slot" },
         { status: 400 }
       )
+    }
+
+    // If there's a cancelled booking for this slot, update it instead of creating new
+    // This is needed because of the unique constraint on (timeSlotId, studentId)
+    const cancelledBooking = await prisma.booking.findFirst({
+      where: {
+        timeSlotId,
+        studentId: session.user.id,
+        status: { in: ["CANCELLED", "REFUNDED", "EXPIRED"] },
+      },
+    })
+
+    if (cancelledBooking) {
+      // Generate new order number for rebooking
+      const newOrderNumber = await generateOrderNumber(prisma)
+      
+      // Update the cancelled booking to a new PENDING booking
+      const updatedBooking = await prisma.booking.update({
+        where: { id: cancelledBooking.id },
+        data: {
+          orderNumber: newOrderNumber, // New order number for rebooking
+          topic: topic || null,
+          expectations: expectations || null,
+          preferredFormat: preferredFormat || null,
+          price,
+          status: "PENDING",
+          paymentStatus: "PENDING",
+          paymentHeld: false,
+          paymentReleased: false,
+          cancelledAt: null,
+          cancelledBy: null,
+          cancellationReason: null,
+          refundedAt: null,
+          completedAt: null,
+          expiredAt: null,
+          noShowAt: null,
+          platformFee: null,
+          paidAt: null,
+        },
+      })
+
+      // Update time slot status if it becomes full
+      if (currentBookings.length + 1 >= timeSlot.maxStudents) {
+        await prisma.timeSlot.update({
+          where: { id: timeSlotId },
+          data: { status: "BOOKED" },
+        })
+      }
+
+      // Log the rebooking with the new order number
+      await prisma.orderLog.create({
+        data: {
+          userId: session.user.id,
+          bookingId: updatedBooking.id,
+          orderNumber: newOrderNumber, // Use the new order number
+          fromStatus: cancelledBooking.status,
+          toStatus: "PENDING",
+          action: "REBOOK",
+          metadata: JSON.stringify({ price, timeSlotId, paymentStatus: "PENDING", previousStatus: cancelledBooking.status, previousOrderNumber: cancelledBooking.orderNumber }),
+        },
+      })
+
+      return NextResponse.json(updatedBooking)
     }
 
     // Create booking - starts as PENDING until payment is completed
@@ -90,8 +154,12 @@ export async function POST(req: Request) {
     // But only after payment is completed
     const initialStatus = "PENDING" // Always start as PENDING, payment will update status
 
+    // Generate unique order number
+    const orderNumber = await generateOrderNumber(prisma)
+
     const booking = await prisma.booking.create({
       data: {
+        orderNumber,
         timeSlotId,
         studentId: session.user.id,
         teacherId: timeSlot.teacherId,
@@ -115,11 +183,12 @@ export async function POST(req: Request) {
       })
     }
 
-    // Log order creation
+    // Log order creation with order number
     await prisma.orderLog.create({
       data: {
         userId: session.user.id,
         bookingId: booking.id,
+        orderNumber: orderNumber, // Include order number
         toStatus: "PENDING",
         action: "CREATE",
         metadata: JSON.stringify({ price, timeSlotId, paymentStatus: "PENDING" }),

@@ -39,14 +39,6 @@ export async function GET(
             },
           },
         },
-        orderLogs: {
-          include: {
-            user: {
-              select: { id: true, name: true, uniqueId: true },
-            },
-          },
-          orderBy: { createdAt: "asc" },
-        },
       },
     })
 
@@ -63,7 +55,24 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    return NextResponse.json(question)
+    // Get order logs filtered by current order number
+    const orderLogs = await prisma.orderLog.findMany({
+      where: {
+        questionId: question.id,
+        orderNumber: question.orderNumber, // Only show logs for current order number
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, uniqueId: true },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    })
+
+    return NextResponse.json({
+      ...question,
+      orderLogs,
+    })
   } catch (error: any) {
     console.error("Error fetching question:", error)
     return NextResponse.json(
@@ -172,6 +181,7 @@ export async function PATCH(
           data: {
             userId: session.user.id,
             questionId: question.id,
+            orderNumber: question.orderNumber, // Include current order number
             fromStatus: "ACCEPTED",
             toStatus: "ANSWERED",
             action: "ANSWER",
@@ -208,6 +218,7 @@ export async function PATCH(
           data: {
             userId: session.user.id,
             questionId: question.id,
+            orderNumber: question.orderNumber, // Include current order number
             fromStatus: "ANSWERED",
             toStatus: "COMPLETED",
             action: "COMPLETE",
@@ -241,6 +252,7 @@ export async function PATCH(
           data: {
             userId: session.user.id,
             questionId: question.id,
+            orderNumber: question.orderNumber, // Include current order number
             fromStatus: "PENDING",
             toStatus: "CANCELLED",
             action: "CANCEL",
@@ -269,6 +281,7 @@ export async function PATCH(
         await prisma.orderLog.create({
           data: {
             questionId: question.id,
+            orderNumber: question.orderNumber, // Include current order number
             fromStatus: question.status,
             toStatus: "EXPIRED",
             action: "EXPIRE",
@@ -296,6 +309,7 @@ export async function PATCH(
           data: {
             userId: session.user.id,
             questionId: question.id,
+            orderNumber: question.orderNumber, // Include current order number
             fromStatus: question.status,
             toStatus: "REFUNDED",
             action: "REFUND",

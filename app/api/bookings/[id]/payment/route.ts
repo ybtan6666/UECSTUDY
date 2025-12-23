@@ -74,11 +74,12 @@ export async function POST(
     // In production, this would return actual payment gateway URL
     const paymentGatewayUrl = `/bookings/${params.id}/payment/process?method=${paymentMethod}`
 
-    // Log payment initiation
+    // Log payment initiation with order number
     await prisma.orderLog.create({
       data: {
         userId: session.user.id,
         bookingId: booking.id,
+        orderNumber: booking.orderNumber, // Include current order number
         fromStatus: booking.status,
         toStatus: booking.status, // Status doesn't change until payment completes
         action: "PAYMENT_INITIATED",

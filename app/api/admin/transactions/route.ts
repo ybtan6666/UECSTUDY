@@ -52,6 +52,7 @@ export async function GET(req: Request) {
     const transactions = [
       ...bookings.map((b) => ({
         id: b.id,
+        orderNumber: b.orderNumber,
         type: "BOOKING",
         student: b.student,
         teacher: b.teacher,
@@ -68,6 +69,7 @@ export async function GET(req: Request) {
       })),
       ...questions.map((q) => ({
         id: q.id,
+        orderNumber: q.orderNumber,
         type: "QUESTION",
         student: q.student,
         teacher: q.teacher,

@@ -125,6 +125,11 @@ export default function QuestionsPage() {
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
+                    {question.orderNumber && (
+                      <span className="text-xs font-mono font-semibold text-blue-600">
+                        {question.orderNumber}
+                      </span>
+                    )}
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
                         question.status

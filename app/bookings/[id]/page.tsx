@@ -140,6 +140,12 @@ export default function BookingDetailPage() {
       )}
 
       <div className="mb-6">
+        {booking.orderNumber && (
+          <div className="mb-2">
+            <span className="text-sm font-semibold text-gray-700">Order Number: </span>
+            <span className="text-sm font-mono font-bold text-blue-600">{booking.orderNumber}</span>
+          </div>
+        )}
         <span
           className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
             booking.status
@@ -292,13 +298,47 @@ export default function BookingDetailPage() {
         <div className="border border-gray-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4">Order History</h3>
           <div className="space-y-2">
-            {booking.orderLogs.map((log: any) => (
-              <div key={log.id} className="text-sm text-gray-600">
-                <span className="font-medium">{log.action}</span> -{" "}
-                {log.fromStatus && `${log.fromStatus} → `}
-                {log.toStatus} - {new Date(log.createdAt).toLocaleString()}
-              </div>
-            ))}
+            {(() => {
+              // Deduplicate order logs - remove duplicates with same action, fromStatus, toStatus
+              // Sort by createdAt first to maintain chronological order
+              const sortedLogs = [...booking.orderLogs].sort(
+                (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              )
+              
+              const uniqueLogs: any[] = []
+              const seen = new Set<string>()
+              
+              sortedLogs.forEach((log: any) => {
+                const fromStatus = log.fromStatus || 'null'
+                const toStatus = log.toStatus || 'null'
+                
+                // For PAYMENT_COMPLETED, be more aggressive - don't show duplicates at all
+                // Group by action and status transition (ignore time for payment completed)
+                if (log.action === "PAYMENT_COMPLETED") {
+                  const key = `${log.action}-${fromStatus}-${toStatus}`
+                  if (!seen.has(key)) {
+                    seen.add(key)
+                    uniqueLogs.push(log)
+                  }
+                } else {
+                  // For other actions, use time window (10 seconds) to group duplicates
+                  const timeWindow = Math.floor(new Date(log.createdAt).getTime() / 10000)
+                  const key = `${log.action}-${fromStatus}-${toStatus}-${timeWindow}`
+                  if (!seen.has(key)) {
+                    seen.add(key)
+                    uniqueLogs.push(log)
+                  }
+                }
+              })
+              
+              return uniqueLogs.map((log: any) => (
+                <div key={log.id} className="text-sm text-gray-600">
+                  <span className="font-medium">{log.action}</span> -{" "}
+                  {log.fromStatus && log.fromStatus !== log.toStatus && `${log.fromStatus} → `}
+                  {log.toStatus} - {new Date(log.createdAt).toLocaleString()}
+                </div>
+              ))
+            })()}
           </div>
         </div>
       )}

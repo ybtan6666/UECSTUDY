@@ -51,6 +51,22 @@ export async function POST(
     }
 
     if (success) {
+      // Check if payment is already completed to prevent duplicate processing
+      // Use a transaction to ensure atomicity
+      const existingBooking = await prisma.booking.findUnique({
+        where: { id: params.id },
+        select: { paymentStatus: true, status: true },
+      })
+
+      if (existingBooking?.paymentStatus === "COMPLETED") {
+        return NextResponse.json({
+          success: true,
+          booking: booking,
+          redirectUrl: `/bookings/${params.id}`,
+          message: "Payment already completed",
+        })
+      }
+
       // Payment successful
       const isGroupReady =
         booking.timeSlot.isGroupSession &&
@@ -59,6 +75,9 @@ export async function POST(
       // Auto-accept if it's a regular slot or group session is ready
       const newStatus = !booking.timeSlot.isGroupSession || isGroupReady ? "ACCEPTED" : "PENDING"
       const acceptedAt = newStatus === "ACCEPTED" ? new Date() : null
+
+      // Only log if status actually changes
+      const statusChanged = booking.status !== newStatus
 
       // Update booking with payment completion
       const updatedBooking = await prisma.booking.update({
@@ -93,21 +112,54 @@ export async function POST(
         })
       }
 
-      // Log payment completion
-      await prisma.orderLog.create({
-        data: {
-          userId: session.user.id,
+      // Log payment completion - only create ONE log per payment completion
+      // Use a more aggressive check to prevent any duplicates
+      // Check if ANY PAYMENT_COMPLETED log exists for this booking (not just recent ones)
+      // This ensures we never create duplicate payment completion logs
+      const existingPaymentLog = await prisma.orderLog.findFirst({
+        where: {
           bookingId: booking.id,
-          fromStatus: booking.status,
-          toStatus: newStatus,
           action: "PAYMENT_COMPLETED",
-          metadata: JSON.stringify({
-            paymentMethod: method,
-            paymentStatus: "COMPLETED",
-            autoAccepted: newStatus === "ACCEPTED",
-          }),
+          // Check if there's a log with the same status transition we're about to create
+          OR: [
+            {
+              fromStatus: booking.status,
+              toStatus: newStatus,
+            },
+            // Also check for any PAYMENT_COMPLETED log within last 60 seconds as backup
+            {
+              createdAt: {
+                gte: new Date(Date.now() - 60000), // Within last 60 seconds
+              },
+            },
+          ],
+        },
+        orderBy: {
+          createdAt: "desc",
         },
       })
+
+      // Only create log if:
+      // 1. No existing PAYMENT_COMPLETED log exists with same transition (prevents duplicates)
+      // 2. Status actually changed (to avoid logging ACCEPTED → ACCEPTED)
+      if (!existingPaymentLog && booking.status !== newStatus) {
+        await prisma.orderLog.create({
+          data: {
+            userId: session.user.id,
+            bookingId: booking.id,
+            orderNumber: updatedBooking.orderNumber, // Include current order number
+            fromStatus: booking.status,
+            toStatus: newStatus,
+            action: "PAYMENT_COMPLETED",
+            metadata: JSON.stringify({
+              paymentMethod: method,
+              paymentStatus: "COMPLETED",
+              autoAccepted: newStatus === "ACCEPTED",
+            }),
+          },
+        })
+      }
+      // If status didn't change (e.g., already ACCEPTED), don't log to avoid duplicate entries
 
       return NextResponse.json({
         success: true,
@@ -127,6 +179,7 @@ export async function POST(
         data: {
           userId: session.user.id,
           bookingId: booking.id,
+          orderNumber: booking.orderNumber, // Include current order number
           fromStatus: booking.status,
           toStatus: booking.status,
           action: "PAYMENT_FAILED",

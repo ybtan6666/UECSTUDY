@@ -30,14 +30,6 @@ export async function GET(
         teacher: {
           select: { id: true, name: true, uniqueId: true, avatar: true },
         },
-        orderLogs: {
-          include: {
-            user: {
-              select: { id: true, name: true, uniqueId: true },
-            },
-          },
-          orderBy: { createdAt: "asc" },
-        },
       },
     })
 
@@ -54,7 +46,24 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    return NextResponse.json(booking)
+    // Get order logs filtered by current order number
+    const orderLogs = await prisma.orderLog.findMany({
+      where: {
+        bookingId: booking.id,
+        orderNumber: booking.orderNumber, // Only show logs for current order number
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, uniqueId: true },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    })
+
+    return NextResponse.json({
+      ...booking,
+      orderLogs,
+    })
   } catch (error: any) {
     console.error("Error fetching booking:", error)
     return NextResponse.json(
@@ -128,6 +137,7 @@ export async function PATCH(
           data: {
             userId: session.user.id,
             bookingId: booking.id,
+            orderNumber: booking.orderNumber, // Include current order number
             fromStatus: "CONFIRMED",
             toStatus: "COMPLETED",
             action: "COMPLETE",
@@ -186,6 +196,7 @@ export async function PATCH(
           data: {
             userId: session.user.id,
             bookingId: booking.id,
+            orderNumber: booking.orderNumber, // Include current order number
             fromStatus: booking.status,
             toStatus: "CANCELLED",
             action: "CANCEL",
@@ -244,6 +255,7 @@ export async function PATCH(
           data: {
             userId: session.user.id,
             bookingId: booking.id,
+            orderNumber: booking.orderNumber, // Include current order number
             fromStatus: booking.status,
             toStatus: "CANCELLED",
             action: "CANCEL",
@@ -281,6 +293,7 @@ export async function PATCH(
           data: {
             userId: session.user.id,
             bookingId: booking.id,
+            orderNumber: booking.orderNumber, // Include current order number
             fromStatus: "CONFIRMED",
             toStatus: "NO_SHOW",
             action: "NO_SHOW",
@@ -308,6 +321,7 @@ export async function PATCH(
           data: {
             userId: session.user.id,
             bookingId: booking.id,
+            orderNumber: booking.orderNumber, // Include current order number
             fromStatus: booking.status,
             toStatus: "REFUNDED",
             action: "REFUND",
