@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import TimeSlotCalendar from "@/components/TimeSlotCalendar"
 
 export default function TeacherProfilePage() {
   const { data: session, status } = useSession()
@@ -88,39 +89,7 @@ export default function TeacherProfilePage() {
             No available time slots.
           </div>
         ) : (
-          <div className="space-y-4">
-            {slots.map((slot) => (
-              <div
-                key={slot.id}
-                className="border border-gray-200 rounded-lg p-6"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <div className="font-semibold text-gray-900">
-                      {new Date(slot.startTime).toLocaleString()} -{" "}
-                      {new Date(slot.endTime).toLocaleString()}
-                    </div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      Min Price: MYR {slot.minPrice.toFixed(2)}
-                    </div>
-                    {slot.isGroupSession && (
-                      <div className="text-sm text-gray-600">
-                        Group Session: {slot.availableSpots}/{slot.maxStudents} spots available
-                      </div>
-                    )}
-                  </div>
-                  {session?.user.role === "STUDENT" && (
-                    <Link
-                      href={`/bookings/create?slotId=${slot.id}`}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
-                      Book Now
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <TimeSlotCalendar slots={slots} teacherId={params.id as string} />
         )}
       </div>
 

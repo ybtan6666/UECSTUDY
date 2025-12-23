@@ -19,7 +19,6 @@ export async function GET() {
       name: true,
       email: true,
       role: true,
-      virtualCoins: true,
       uniqueId: true,
       avatar: true,
     },
@@ -30,36 +29,13 @@ export async function GET() {
   }
 
   if (role === "STUDENT") {
-    const courses = await prisma.coursePurchase.findMany({
-      where: { studentId: userId },
-      include: {
-        course: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    })
-
-    const questions = await prisma.paidQuestion.findMany({
+    // Get student's questions
+    const questions = await prisma.mathQuestion.findMany({
       where: { studentId: userId },
       orderBy: { createdAt: "desc" },
     })
 
-    const challenges = await prisma.challengeAttempt.findMany({
-      where: { studentId: userId },
-      include: {
-        challenge: {
-          select: {
-            title: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    })
-
+    // Get student's bookings
     const bookings = await prisma.booking.findMany({
       where: { studentId: userId },
       include: {
@@ -69,28 +45,32 @@ export async function GET() {
             endTime: true,
           },
         },
+        teacher: {
+          select: {
+            id: true,
+            name: true,
+            uniqueId: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     })
 
     return NextResponse.json({
       user,
-      courses,
+      courses: [], // Course model not in current schema
       questions,
-      challenges,
+      challenges: [], // Challenge model not in current schema
       bookings,
     })
   } else if (role === "TEACHER") {
-    const courses = await prisma.course.findMany({
+    // Get teacher's questions
+    const questions = await prisma.mathQuestion.findMany({
       where: { teacherId: userId },
       orderBy: { createdAt: "desc" },
     })
 
-    const questions = await prisma.paidQuestion.findMany({
-      where: { teacherId: userId },
-      orderBy: { createdAt: "desc" },
-    })
-
+    // Get teacher's time slots
     const timeSlots = await prisma.timeSlot.findMany({
       where: { teacherId: userId },
       include: {
@@ -103,7 +83,7 @@ export async function GET() {
 
     return NextResponse.json({
       user,
-      courses,
+      courses: [], // Course model not in current schema
       questions,
       timeSlots,
     })

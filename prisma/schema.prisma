@@ -169,18 +169,23 @@ model Booking {
   price           Float    // Actual paid price (can be higher than minPrice)
   
   // State machine
-  status          String   @default("CONFIRMED") // CONFIRMED, COMPLETED, CANCELLED_BY_STUDENT, CANCELLED_BY_TEACHER, NO_SHOW, REFUNDED
+  status          String   @default("PENDING") // PENDING, ACCEPTED, COMPLETED, CANCELLED, EXPIRED, REFUNDED
+  acceptedAt      DateTime?
   cancelledAt     DateTime?
   cancelledBy     String?  // "STUDENT" or "TEACHER"
   cancellationReason String?
   completedAt     DateTime?
+  expiredAt       DateTime?
   noShowAt        DateTime?
   refundedAt      DateTime?
   
   // Payment tracking
-  paymentHeld     Boolean  @default(true)
+  paymentMethod   String?  // "BANK_TRANSFER", "E_WALLET", "CREDIT_CARD"
+  paymentStatus   String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED, REFUNDED
+  paymentHeld     Boolean  @default(false) // Only true after payment completed
   paymentReleased Boolean  @default(false)
   platformFee     Float?
+  paidAt          DateTime? // When payment was completed
   
   // Group session tracking
   isGroupBooking  Boolean  @default(false)

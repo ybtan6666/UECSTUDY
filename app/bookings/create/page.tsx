@@ -62,7 +62,9 @@ export default function CreateBookingPage() {
       })
 
       if (res.ok) {
-        router.push("/bookings")
+        const booking = await res.json()
+        // Redirect to payment page after booking creation
+        router.push(`/bookings/${booking.id}/payment`)
       } else {
         const error = await res.json()
         alert(error.error || "Failed to create booking")

@@ -3,11 +3,12 @@
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 
 export default function BookingsPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const params = useParams()
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -38,10 +39,11 @@ export default function BookingsPage() {
 
   const getStatusColor = (status: string) => {
     const colors: any = {
-      CONFIRMED: "bg-blue-100 text-blue-800",
+      PENDING: "bg-yellow-100 text-yellow-800",
+      ACCEPTED: "bg-blue-100 text-blue-800",
       COMPLETED: "bg-green-100 text-green-800",
-      CANCELLED_BY_STUDENT: "bg-gray-100 text-gray-800",
-      CANCELLED_BY_TEACHER: "bg-orange-100 text-orange-800",
+      CANCELLED: "bg-gray-100 text-gray-800",
+      EXPIRED: "bg-red-100 text-red-800",
       NO_SHOW: "bg-red-100 text-red-800",
       REFUNDED: "bg-yellow-100 text-yellow-800",
     }
@@ -108,7 +110,13 @@ export default function BookingsPage() {
                   )}
                   {session?.user.role === "TEACHER" && booking.student && (
                     <div className="text-sm text-gray-600">
-                      Student: {booking.student.name} ({booking.student.uniqueId})
+                      Student:{" "}
+                      <Link
+                        href={`/teachers/${session.user.id}/students/${booking.student.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {booking.student.name} ({booking.student.uniqueId})
+                      </Link>
                     </div>
                   )}
                 </div>

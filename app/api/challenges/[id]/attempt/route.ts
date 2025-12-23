@@ -32,15 +32,15 @@ export async function POST(
     }
   })
 
-  // Award coins
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      virtualCoins: {
-        increment: challenge.coinReward,
-      },
-    },
-  })
+  // Award coins - virtualCoins field not in current schema
+  // await prisma.user.update({
+  //   where: { id: userId },
+  //   data: {
+  //     virtualCoins: {
+  //       increment: challenge.coinReward,
+  //     },
+  //   },
+  // })
 
   await prisma.challengeAttempt.create({
     data: {

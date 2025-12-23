@@ -50,9 +50,12 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check if slot is full
+    // Check if slot is full (count accepted and pending bookings with completed payment)
+    // Also count pending bookings that haven't paid yet (they might complete payment)
     const currentBookings = timeSlot.bookings.filter(
-      (b) => b.status === "CONFIRMED"
+      (b) => 
+        (b.status === "ACCEPTED" || b.status === "PENDING") && 
+        (b.paymentStatus === "COMPLETED" || b.paymentStatus === "PENDING")
     )
     if (currentBookings.length >= timeSlot.maxStudents) {
       return NextResponse.json(
@@ -66,7 +69,7 @@ export async function POST(req: Request) {
       where: {
         timeSlotId,
         studentId: session.user.id,
-        status: { not: "CANCELLED_BY_STUDENT" },
+        status: { notIn: ["CANCELLED", "REFUNDED"] },
       },
     })
 
@@ -77,7 +80,16 @@ export async function POST(req: Request) {
       )
     }
 
-    // Create booking
+    // Create booking - starts as PENDING until payment is completed
+    // For group sessions, if min students reached, auto-accept and generate links
+    const willBeFull = currentBookings.length + 1 >= timeSlot.maxStudents
+    const isGroupReady = timeSlot.isGroupSession && 
+      currentBookings.length + 1 >= timeSlot.minStudents
+    
+    // Auto-accept if it's a regular slot (not group) or if group session reaches min students
+    // But only after payment is completed
+    const initialStatus = "PENDING" // Always start as PENDING, payment will update status
+
     const booking = await prisma.booking.create({
       data: {
         timeSlotId,
@@ -87,8 +99,9 @@ export async function POST(req: Request) {
         expectations: expectations || null,
         preferredFormat: preferredFormat || null,
         price,
-        status: "CONFIRMED",
-        paymentHeld: true,
+        status: initialStatus,
+        paymentStatus: "PENDING",
+        paymentHeld: false, // Payment not held until payment is completed
         isGroupBooking: timeSlot.isGroupSession,
         groupId: timeSlot.isGroupSession ? timeSlot.id : null,
       },
@@ -107,17 +120,28 @@ export async function POST(req: Request) {
       data: {
         userId: session.user.id,
         bookingId: booking.id,
-        toStatus: "CONFIRMED",
+        toStatus: "PENDING",
         action: "CREATE",
-        metadata: JSON.stringify({ price, timeSlotId }),
+        metadata: JSON.stringify({ price, timeSlotId, paymentStatus: "PENDING" }),
       },
     })
 
     return NextResponse.json(booking)
   } catch (error: any) {
     console.error("Error creating booking:", error)
+    console.error("Error message:", error.message)
+    console.error("Error stack:", error.stack)
+    
+    // Return detailed error in development
+    const errorMessage = process.env.NODE_ENV === "development" 
+      ? error.message || "Failed to create booking"
+      : "Failed to create booking"
+    
     return NextResponse.json(
-      { error: "Failed to create booking" },
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === "development" ? error.stack : undefined
+      },
       { status: 500 }
     )
   }

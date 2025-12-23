@@ -9,7 +9,6 @@ interface ProfileData {
     name: string
     email: string
     role: string
-    virtualCoins: number
     uniqueId: string
     avatar: string | null
   }
@@ -106,13 +105,6 @@ export default function ProfilePage() {
             <p className="text-gray-600">Role: {profile.user.role}</p>
           </div>
         </div>
-        {isStudent && (
-          <div className="bg-gradient-to-r from-yellow-100 to-yellow-200 p-4 rounded-lg">
-            <p className="text-2xl font-bold text-yellow-700">
-              🪙 Virtual Coins: {profile.user.virtualCoins}
-            </p>
-          </div>
-        )}
       </div>
 
       {isStudent && (
