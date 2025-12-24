@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { format } from "date-fns"
+import { BackButton } from "@/components/BackButton"
 
 interface TimeSlot {
   id: string
@@ -74,6 +75,9 @@ export default function ManageSlotsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/qa" />
+      </div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Manage Time Slots</h1>
         <button

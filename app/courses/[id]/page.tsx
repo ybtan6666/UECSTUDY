@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { RatingSystem } from "@/components/RatingSystem"
+import { BackButton } from "@/components/BackButton"
 
 interface Course {
   id: string
@@ -59,6 +60,9 @@ export default function CourseDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/courses" />
+      </div>
       <div className="uec-card p-8">
         <h1 className="text-3xl font-bold mb-4 text-red-600">{course.title}</h1>
         <p className="text-gray-500 mb-2">Subject: {course.subject}</p>

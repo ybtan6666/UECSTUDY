@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 interface PaidQuestion {
   id: string
@@ -46,6 +47,9 @@ export default function QAPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/dashboard" />
+      </div>
       <h1 className="text-4xl font-bold mb-8 text-center text-red-600">
         问答系统 Q&A System
       </h1>

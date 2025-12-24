@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 export default function StudentProfilePage() {
   const { data: session, status } = useSession()
@@ -75,12 +76,9 @@ export default function StudentProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <Link
-        href={`/teachers/${params.id}`}
-        className="text-blue-600 hover:underline mb-4 inline-block"
-      >
-        ← Back to Teacher Profile
-      </Link>
+      <div className="mb-4">
+        <BackButton fallbackPath={`/teachers/${params.id}`} />
+      </div>
 
       <div className="border border-gray-200 rounded-lg p-6 mb-8">
         <div className="flex items-center space-x-4 mb-4">

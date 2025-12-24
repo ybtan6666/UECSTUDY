@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import TimeSlotCalendar from "@/components/TimeSlotCalendar"
+import { BackButton } from "@/components/BackButton"
 
 export default function TeacherProfilePage() {
   const { data: session, status } = useSession()
@@ -60,6 +61,9 @@ export default function TeacherProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="mb-4">
+        <BackButton fallbackPath="/teachers" />
+      </div>
       <div className="border border-gray-200 rounded-lg p-6 mb-8">
         <div className="flex items-center space-x-4 mb-4">
           <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-semibold">

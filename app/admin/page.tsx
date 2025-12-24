@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 type Transaction = {
   id: string
@@ -243,6 +244,9 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/dashboard" />
+      </div>
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Panel</h1>
 
       {/* Tabs */}

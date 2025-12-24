@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { BackButton } from "@/components/BackButton"
 
 export default function CreateCoursePage() {
   const [title, setTitle] = useState("")
@@ -46,6 +47,9 @@ export default function CreateCoursePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/courses" />
+      </div>
       <h1 className="text-3xl font-bold mb-6">Create Course</h1>
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
         <div>

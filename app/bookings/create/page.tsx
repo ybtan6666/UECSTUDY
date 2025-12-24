@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { BackButton } from "@/components/BackButton"
 
 export default function CreateBookingPage() {
   const { data: session, status } = useSession()
@@ -82,6 +83,9 @@ export default function CreateBookingPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="mb-4">
+        <BackButton fallbackPath="/teachers" />
+      </div>
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Book Time Slot</h1>
 
       <div className="border border-gray-200 rounded-lg p-6 mb-6">

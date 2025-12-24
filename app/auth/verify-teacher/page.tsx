@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 export default function VerifyTeacherPage() {
   const [verificationCode, setVerificationCode] = useState("")
@@ -106,6 +107,9 @@ export default function VerifyTeacherPage() {
 
   return (
     <div className="max-w-md mx-auto mt-12 px-4">
+      <div className="mb-4">
+        <BackButton fallbackPath="/auth/signup?role=teacher" />
+      </div>
       <div className="uec-card p-8">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold mb-2 text-red-600">验证码</h1>

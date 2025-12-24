@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
+import { BackButton } from "@/components/BackButton"
 
 export default function QuestionDetailPage() {
   const { data: session, status } = useSession()
@@ -91,6 +92,9 @@ export default function QuestionDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="mb-4">
+        <BackButton fallbackPath="/questions" />
+      </div>
       <div className="mb-6">
         {question.orderNumber && (
           <div className="mb-2">

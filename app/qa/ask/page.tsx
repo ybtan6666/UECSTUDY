@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { BackButton } from "@/components/BackButton"
 
 interface Course {
   id: string
@@ -84,6 +85,9 @@ export default function AskQuestionPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/qa" />
+      </div>
       <h1 className="text-3xl font-bold mb-6">Ask a Paid Question</h1>
       <div className="bg-blue-50 p-4 rounded-lg mb-6">
         <p className="text-sm text-gray-700">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 export default function CompleteProfilePage() {
   const [file, setFile] = useState<File | null>(null)
@@ -85,6 +86,9 @@ const handleUpload = async () => {
 
   return (
     <div className="max-w-md mx-auto mt-20 px-4">
+      <div className="mb-4">
+        <BackButton fallbackPath="/auth/signin" />
+      </div>
       <div className="uec-card p-8 text-center">
         <h1 className="text-2xl font-bold mb-2 text-red-600">Welcome! 🎉</h1>
         <p className="text-gray-600 mb-8">Your account has been created.</p>

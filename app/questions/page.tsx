@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { BackButton } from "@/components/BackButton"
 
 export default function QuestionsPage() {
   const { data: session, status } = useSession()
@@ -68,6 +69,9 @@ export default function QuestionsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="mb-4">
+        <BackButton fallbackPath="/dashboard" />
+      </div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
           {session.user.role === "STUDENT" ? "My Questions" : "Questions"}

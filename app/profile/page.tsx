@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 interface ProfileData {
   user: {
@@ -81,6 +82,9 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/dashboard" />
+      </div>
       <div className="uec-card p-8 mb-8">
         <div className="flex items-center space-x-6 mb-6">
           {profile.user.avatar ? (

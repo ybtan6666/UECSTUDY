@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { format } from "date-fns"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 interface Booking {
   id: string
@@ -74,6 +75,9 @@ export default function BookingsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/qa" />
+      </div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">My Bookings</h1>
         <div className="flex space-x-2">

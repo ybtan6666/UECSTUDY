@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { BackButton } from "@/components/BackButton"
 
 export default function TeachersPage() {
   const { data: session, status } = useSession()
@@ -54,6 +55,9 @@ export default function TeachersPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="mb-4">
+        <BackButton fallbackPath="/dashboard" />
+      </div>
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Teachers</h1>
 
       {teachers.length === 0 ? (

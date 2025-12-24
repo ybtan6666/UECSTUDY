@@ -5,6 +5,7 @@ import { useParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { formatDistanceToNow } from "date-fns"
 import { RatingSystem } from "@/components/RatingSystem"
+import { BackButton } from "@/components/BackButton"
 
 interface PaidQuestion {
   id: string
@@ -68,6 +69,9 @@ export default function QuestionDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/qa" />
+      </div>
       <div className="uec-card p-8">
         <div className="mb-6">
           <div className="flex justify-between items-start mb-4">

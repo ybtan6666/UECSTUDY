@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { signIn, getSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 export default function SignInPage() {
   const [email, setEmail] = useState("")
@@ -89,6 +90,9 @@ export default function SignInPage() {
 
   return (
     <div className="max-w-md mx-auto mt-12 px-4">
+      <div className="mb-4">
+        <BackButton fallbackPath="/" />
+      </div>
       <div className="uec-card p-8">
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold mb-2 text-red-600">登入</h1>

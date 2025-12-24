@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 interface Course {
   id: string
@@ -43,6 +44,9 @@ export default function CoursesPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/dashboard" />
+      </div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Courses</h1>
         {(session?.user as any)?.role === "TEACHER" && (

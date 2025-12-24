@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { format } from "date-fns"
+import { BackButton } from "@/components/BackButton"
 
 interface TimeSlot {
   id: string
@@ -59,6 +60,9 @@ export default function BookTimePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/qa" />
+      </div>
       <h1 className="text-3xl font-bold mb-6">Book Teacher Time</h1>
       <div className="bg-green-50 p-4 rounded-lg mb-6">
         <p className="text-sm text-gray-700">

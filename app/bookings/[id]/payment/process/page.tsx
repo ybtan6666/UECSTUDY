@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { BackButton } from "@/components/BackButton"
 
 export default function PaymentProcessPage() {
   const { data: session, status } = useSession()
@@ -55,6 +56,9 @@ export default function PaymentProcessPage() {
   if (status === "loading" || processing) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12">
+        <div className="mb-4">
+          <BackButton fallbackPath={`/bookings/${params.id}/payment`} />
+        </div>
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
@@ -71,6 +75,9 @@ export default function PaymentProcessPage() {
   if (success) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12">
+        <div className="mb-4">
+          <BackButton fallbackPath={`/bookings/${params.id}`} />
+        </div>
         <div className="border-2 border-green-500 rounded-lg p-8 bg-green-50 text-center shadow-lg">
           <div className="mb-6">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full mb-4">
@@ -119,6 +126,9 @@ export default function PaymentProcessPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="mb-4">
+        <BackButton fallbackPath={`/bookings/${params.id}/payment`} />
+      </div>
       <div className="border border-red-200 rounded-lg p-8 bg-red-50 text-center">
         <div className="text-6xl mb-4">✗</div>
         <h2 className="text-2xl font-semibold text-red-800 mb-2">

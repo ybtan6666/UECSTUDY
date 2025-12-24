@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { BackButton } from "@/components/BackButton"
 
 const PLATFORM_MIN_PRICE = 5.0
 
@@ -136,6 +137,9 @@ export default function AskQuestionPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="mb-4">
+        <BackButton fallbackPath="/questions" />
+      </div>
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Ask a Question</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">

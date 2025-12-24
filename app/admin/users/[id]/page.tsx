@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 type UserDetails = {
   id: string
@@ -116,12 +117,7 @@ export default function UserDetailPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-6">
-        <Link
-          href="/admin"
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-        >
-          ← Back to Admin Panel
-        </Link>
+        <BackButton fallbackPath="/admin" />
       </div>
 
       <div className="bg-white shadow rounded-lg overflow-hidden">

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { BackButton } from "@/components/BackButton"
 
 export default function CreateChallengePage() {
   const [title, setTitle] = useState("")
@@ -61,6 +62,9 @@ export default function CreateChallengePage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mb-4">
+        <BackButton fallbackPath="/challenges" />
+      </div>
       <h1 className="text-3xl font-bold mb-6">Create Challenge</h1>
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-6">
         <div>

@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { BackButton } from "@/components/BackButton"
 
 export default function SlotsPage() {
   const { data: session, status } = useSession()
@@ -90,6 +91,9 @@ export default function SlotsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="mb-4">
+        <BackButton fallbackPath="/dashboard" />
+      </div>
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">My Time Slots</h1>
         <button
