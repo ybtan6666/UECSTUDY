@@ -15,15 +15,20 @@ export default function VerifyTeacherPage() {
   useEffect(() => {
     // Get email from query params or localStorage
     const emailParam = searchParams.get("email")
-    const storedEmail = localStorage.getItem("teacherSignupEmail")
+    const storedSignupData = localStorage.getItem("teacherSignupData")
     
     if (emailParam) {
       setEmail(emailParam)
-      localStorage.setItem("teacherSignupEmail", emailParam)
-    } else if (storedEmail) {
-      setEmail(storedEmail)
+    } else if (storedSignupData) {
+      try {
+        const signupData = JSON.parse(storedSignupData)
+        setEmail(signupData.email)
+      } catch (e) {
+        // Invalid data, redirect to signup
+        router.push("/auth/signup?role=teacher")
+      }
     } else {
-      // No email found, redirect to signup
+      // No signup data found, redirect to signup
       router.push("/auth/signup?role=teacher")
     }
   }, [searchParams, router])
@@ -40,22 +45,49 @@ export default function VerifyTeacherPage() {
     }
 
     try {
+      // Get stored signup data
+      const storedSignupData = localStorage.getItem("teacherSignupData")
+      if (!storedSignupData) {
+        setError("Signup data not found. Please complete signup first.")
+        setLoading(false)
+        router.push("/auth/signup?role=teacher")
+        return
+      }
+
+      const signupData = JSON.parse(storedSignupData)
+
+      // Verify that email matches
+      if (signupData.email !== email) {
+        setError("Email mismatch. Please complete signup again.")
+        setLoading(false)
+        localStorage.removeItem("teacherSignupData")
+        router.push("/auth/signup?role=teacher")
+        return
+      }
+
       const res = await fetch("/api/auth/verify-teacher", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
           verificationCode,
+          name: signupData.name,
+          password: signupData.password,
         }),
       })
 
       const data = await res.json()
 
       if (res.ok) {
-        // Clear stored email
-        localStorage.removeItem("teacherSignupEmail")
-        // Redirect to sign in with success message
-        router.push("/auth/signin?verified=true")
+        // Clear stored signup data
+        localStorage.removeItem("teacherSignupData")
+        // Redirect to complete profile page to upload picture
+        if (data.userId) {
+          router.push(`/auth/complete-profile?userId=${data.userId}`)
+        } else {
+          // Fallback: if userId not returned, go to sign in
+          router.push("/auth/signin?verified=true")
+        }
       } else {
         setError(data.error || "Verification failed")
       }

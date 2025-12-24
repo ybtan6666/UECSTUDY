@@ -35,12 +35,25 @@ export default function SignUpPage() {
       const data = await res.json()
 
       if (res.ok) {
-        // Safety check to ensure data.user.id exists
-        if (data.user && data.user.id) {
-           router.push(`/auth/complete-profile?userId=${data.user.id}`)
+        // For teachers: Store signup data and redirect to verification
+        // User will be created AFTER verification
+        if (role === "TEACHER") {
+          // Store all signup data in localStorage for verification step
+          const signupData = {
+            name,
+            email,
+            password, // Note: In production, consider encrypting this
+            role: "TEACHER"
+          }
+          localStorage.setItem("teacherSignupData", JSON.stringify(signupData))
+          router.push(`/auth/verify-teacher?email=${encodeURIComponent(email)}`)
         } else {
-           // If signup succeeded but no ID returned, just go to login
-           router.push("/auth/signin")
+          // For students: User is created immediately, go to complete profile
+          if (data.user && data.user.id) {
+            router.push(`/auth/complete-profile?userId=${data.user.id}`)
+          } else {
+            router.push("/auth/signin")
+          }
         }
       } else {
         setError(data.error || "Sign up failed")

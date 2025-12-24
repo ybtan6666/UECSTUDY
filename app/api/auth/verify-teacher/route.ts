@@ -8,7 +8,7 @@ import { generateUECId, generateAvatar } from "@/lib/utils"
 
 export async function POST(req: Request) {
   try {
-    const { email, verificationCode } = await req.json()
+    const { email, verificationCode, name, password } = await req.json()
 
     if (!email || !verificationCode) {
       return NextResponse.json(
@@ -36,26 +36,39 @@ export async function POST(req: Request) {
       )
     }
 
-    // Check if user exists (from initial signup step)
-    // We'll store the user data temporarily or check if they exist
-    const user = await prisma.user.findUnique({
+    // Check if user already exists (shouldn't happen if signup didn't create user)
+    const existingUser = await prisma.user.findUnique({
       where: { email },
     })
 
-    if (!user) {
+    if (existingUser) {
       return NextResponse.json(
-        { error: "User not found. Please complete signup first." },
-        { status: 404 }
-      )
-    }
-
-    // Check if user is already a teacher (shouldn't happen, but safety check)
-    if (user.role !== "TEACHER") {
-      return NextResponse.json(
-        { error: "User is not registering as a teacher" },
+        { error: "User already exists. Please sign in instead." },
         { status: 400 }
       )
     }
+
+    // Verify that we have the signup data to create the user
+    if (!name || !password) {
+      return NextResponse.json(
+        { error: "Missing signup data. Please complete signup first." },
+        { status: 400 }
+      )
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    // Create the user AFTER verification is successful
+    const user = await prisma.user.create({
+      data: {
+        email,
+        name,
+        password: hashedPassword,
+        role: "TEACHER",
+        uniqueId: `UEC-${Math.floor(1000 + Math.random() * 9000)}`,
+      },
+    })
 
     // Mark the verification code as used
     await prisma.verificationCode.update({
@@ -67,10 +80,12 @@ export async function POST(req: Request) {
       },
     })
 
-    // User is now verified - registration is complete
+    // User is now created and verified - registration is complete
+    // Return userId so frontend can redirect to complete-profile page
     return NextResponse.json({
       success: true,
       message: "Verification successful. Registration complete!",
+      userId: user.id,
     })
   } catch (error: any) {
     console.error("Error verifying teacher code:", error)
