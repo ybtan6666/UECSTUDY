@@ -10,11 +10,26 @@ export function Navbar() {
   const [userData, setUserData] = useState<any>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+  // ✅ 1. FETCH DATA ON LOAD
   useEffect(() => {
     if (session) {
       fetchUserData()
     }
   }, [session])
+
+  // ✅ 2. NEW: LISTEN FOR UPDATES FROM SETTINGS PAGE
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      console.log("🔄 Navbar received update signal...")
+      fetchUserData() // Re-fetch data when signal is received
+    }
+
+    // Start listening
+    window.addEventListener("profile-updated", handleProfileUpdate)
+    
+    // Stop listening when component unmounts (cleanup)
+    return () => window.removeEventListener("profile-updated", handleProfileUpdate)
+  }, [])
 
   const fetchUserData = async () => {
     try {
@@ -84,11 +99,14 @@ export function Navbar() {
                     Admin
                   </Link>
                 )}
+                
                 <div className="flex items-center space-x-3">
                   {userData && (
-                    <div className="flex items-center space-x-2">
-                      {/* ✅ FIX START: Handle Image vs Initials properly */}
-                      <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200">
+                    <Link 
+                      href="/profile" 
+                      className="flex items-center space-x-2 hover:bg-gray-50 rounded-full pr-3 py-1 transition-colors group"
+                    >
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden border border-gray-200 group-hover:border-gray-300">
                         {userData.avatar ? (
                           <img 
                             src={userData.avatar} 
@@ -105,16 +123,16 @@ export function Navbar() {
                           </div>
                         )}
                       </div>
-                      {/* ✅ FIX END */}
                       
                       <div className="text-sm">
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
                           {userData.uniqueId || session.user.name}
                         </div>
                         <div className="text-xs text-gray-500">{session.user.role}</div>
                       </div>
-                    </div>
+                    </Link>
                   )}
+                  
                   <button
                     onClick={() => signOut({ callbackUrl: "/" })}
                     className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -151,19 +169,9 @@ export function Navbar() {
                 stroke="currentColor"
               >
                 {mobileMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
@@ -175,61 +183,30 @@ export function Navbar() {
           <div className="md:hidden py-4 border-t border-gray-200">
             {session ? (
               <div className="space-y-3">
-                <Link
-                  href="/dashboard"
-                  className="block text-gray-700 hover:text-gray-900"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
+                <Link href="/dashboard" className="block text-gray-700 hover:text-gray-900" onClick={() => setMobileMenuOpen(false)}>
                   Dashboard
                 </Link>
+                
+                <Link 
+                  href="/profile" 
+                  className="block text-gray-700 hover:text-gray-900 font-medium" 
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  My Profile ({userData?.uniqueId || session.user.name})
+                </Link>
+
                 {session.user.role === "STUDENT" && (
                   <>
-                    <Link
-                      href="/questions"
-                      className="block text-gray-700 hover:text-gray-900"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Questions
-                    </Link>
-                    <Link
-                      href="/bookings"
-                      className="block text-gray-700 hover:text-gray-900"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Bookings
-                    </Link>
-                    <Link
-                      href="/teachers"
-                      className="block text-gray-700 hover:text-gray-900"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Teachers
-                    </Link>
+                    <Link href="/questions" className="block text-gray-700 hover:text-gray-900" onClick={() => setMobileMenuOpen(false)}>Questions</Link>
+                    <Link href="/bookings" className="block text-gray-700 hover:text-gray-900" onClick={() => setMobileMenuOpen(false)}>Bookings</Link>
+                    <Link href="/teachers" className="block text-gray-700 hover:text-gray-900" onClick={() => setMobileMenuOpen(false)}>Teachers</Link>
                   </>
                 )}
                 {session.user.role === "TEACHER" && (
                   <>
-                    <Link
-                      href="/questions"
-                      className="block text-gray-700 hover:text-gray-900"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Questions
-                    </Link>
-                    <Link
-                      href="/slots"
-                      className="block text-gray-700 hover:text-gray-900"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Time Slots
-                    </Link>
-                    <Link
-                      href="/bookings"
-                      className="block text-gray-700 hover:text-gray-900"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Bookings
-                    </Link>
+                    <Link href="/questions" className="block text-gray-700 hover:text-gray-900" onClick={() => setMobileMenuOpen(false)}>Questions</Link>
+                    <Link href="/slots" className="block text-gray-700 hover:text-gray-900" onClick={() => setMobileMenuOpen(false)}>Time Slots</Link>
+                    <Link href="/bookings" className="block text-gray-700 hover:text-gray-900" onClick={() => setMobileMenuOpen(false)}>Bookings</Link>
                   </>
                 )}
                 <button
@@ -244,20 +221,8 @@ export function Navbar() {
               </div>
             ) : (
               <div className="space-y-3">
-                <Link
-                  href="/auth/signin"
-                  className="block text-gray-700 hover:text-gray-900"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Sign Up
-                </Link>
+                <Link href="/auth/signin" className="block text-gray-700 hover:text-gray-900" onClick={() => setMobileMenuOpen(false)}>Sign In</Link>
+                <Link href="/auth/signup" className="block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center" onClick={() => setMobileMenuOpen(false)}>Sign Up</Link>
               </div>
             )}
           </div>
