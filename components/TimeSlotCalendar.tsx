@@ -135,6 +135,13 @@ export default function TimeSlotCalendar({ slots, teacherId, onSlotClick }: Time
     return `${displayHour}:${minute} ${period}`
   }
 
+  // Format a Date object to time string (HH:MM format)
+  const formatDateToTime = (date: Date) => {
+    const hour = date.getHours()
+    const minute = date.getMinutes()
+    return `${hour}:${String(minute).padStart(2, '0')}`
+  }
+
   const getSlotsForTime = (day: Date, timeString: string): TimeSlot[] => {
     const dayKey = day.toDateString()
     return slotsByDayAndTime[dayKey]?.[timeString] || []
@@ -435,13 +442,13 @@ export default function TimeSlotCalendar({ slots, teacherId, onSlotClick }: Time
                       e.stopPropagation()
                       handleSlotClick(slot)
                     }}
-                    title={`${formatTime(slotStart.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))} - ${formatTime(slotEnd.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))} | MYR ${slot.minPrice.toFixed(2)}`}
+                    title={`${formatTime(formatDateToTime(slotStart))} - ${formatTime(formatDateToTime(slotEnd))} | MYR ${slot.minPrice.toFixed(2)}`}
                   >
                     <div>
                       {!isContinuation && (
                         <>
                           <div className="font-semibold">
-                            {formatTime(slotStart.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))}
+                            {formatTime(formatDateToTime(slotStart))}
                           </div>
                           <div className="text-[10px] opacity-90">
                             MYR {slot.minPrice.toFixed(0)}
@@ -464,8 +471,8 @@ export default function TimeSlotCalendar({ slots, teacherId, onSlotClick }: Time
                     {(rowSpan > 1 || isContinuation) && (
                       <div className="text-[10px] opacity-75">
                         {isContinuation 
-                          ? `Until ${formatTime(slotEnd.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))}`
-                          : `Until ${formatTime(displayEnd.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))}`
+                          ? `Until ${formatTime(formatDateToTime(slotEnd))}`
+                          : `Until ${formatTime(formatDateToTime(displayEnd))}`
                         }
                       </div>
                     )}
