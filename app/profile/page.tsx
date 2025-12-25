@@ -62,6 +62,23 @@ export default function ProfilePage() {
     return colors[hash % colors.length]
   }
 
+  // Helper function to get question display text
+  const getQuestionDisplay = (question: any) => {
+    if (question.questionText) {
+      return question.questionText.substring(0, 100) + (question.questionText.length > 100 ? "..." : "")
+    }
+    if (question.questionImage) {
+      return "[Image Question]"
+    }
+    if (question.questionAudio) {
+      return "[Audio Question]"
+    }
+    if (question.questionVideo) {
+      return "[Video Question]"
+    }
+    return "[Question]"
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* HEADER */}
@@ -107,9 +124,11 @@ export default function ProfilePage() {
             {profile.questions.length > 0 ? (
               <div className="space-y-2">
                 {profile.questions.map((q) => (
-                  <Link key={q.id} href={`/qa/questions/${q.id}`} className="block p-3 border rounded hover:bg-gray-50">
-                    <p className="font-semibold">{q.question.substring(0, 100)}...</p>
-                    <p className="text-sm text-gray-500">{q.answeredAt ? "Answered" : "Pending"} • RM {q.price.toFixed(2)}</p>
+                  <Link key={q.id} href={`/questions/${q.id}`} className="block p-3 border rounded hover:bg-gray-50">
+                    <p className="font-semibold">{getQuestionDisplay(q)}</p>
+                    <p className="text-sm text-gray-500">
+                      {q.answeredAt ? "Answered" : q.status} • RM {q.price.toFixed(2)}
+                    </p>
                   </Link>
                 ))}
               </div>
@@ -152,9 +171,11 @@ export default function ProfilePage() {
             {profile.questions.length > 0 ? (
               <div className="space-y-2">
                 {profile.questions.map((q) => (
-                  <Link key={q.id} href={`/qa/questions/${q.id}`} className="block p-3 border rounded hover:bg-gray-50">
-                    <p className="font-semibold">{q.question.substring(0, 100)}...</p>
-                    <p className="text-sm text-gray-500">{q.answeredAt ? "Answered" : "Pending"} • RM {q.price.toFixed(2)}</p>
+                  <Link key={q.id} href={`/questions/${q.id}`} className="block p-3 border rounded hover:bg-gray-50">
+                    <p className="font-semibold">{getQuestionDisplay(q)}</p>
+                    <p className="text-sm text-gray-500">
+                      {q.answeredAt ? "Answered" : q.status} • RM {q.price.toFixed(2)}
+                    </p>
                   </Link>
                 ))}
               </div>
