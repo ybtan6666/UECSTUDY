@@ -63,7 +63,8 @@ export default function ManageSlotsPage() {
       setZoomLink("")
       fetchSlots()
     } else {
-      alert("Failed to create slot")
+      const error = await res.json()
+      alert(error.error || "Failed to create slot")
     }
   }
 

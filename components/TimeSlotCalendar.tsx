@@ -104,10 +104,10 @@ export default function TimeSlotCalendar({ slots, teacherId, onSlotClick }: Time
     return grouped
   }, [weekSlots, weekDays])
 
-  // Generate time slots (8 AM to 10 PM in 30-minute intervals)
+  // Generate time slots (24 hours in 30-minute intervals)
   const timeSlots = useMemo(() => {
     const times = []
-    for (let hour = 8; hour < 22; hour++) {
+    for (let hour = 0; hour < 24; hour++) {
       times.push(`${hour}:00`)
       times.push(`${hour}:30`)
     }
@@ -138,6 +138,57 @@ export default function TimeSlotCalendar({ slots, teacherId, onSlotClick }: Time
   const getSlotsForTime = (day: Date, timeString: string): TimeSlot[] => {
     const dayKey = day.toDateString()
     return slotsByDayAndTime[dayKey]?.[timeString] || []
+  }
+
+  // Check if a slot starts at a specific time
+  const doesSlotStartAtTime = (slot: TimeSlot, day: Date, timeString: string): boolean => {
+    const [hour, minute] = timeString.split(":")
+    const slotStart = new Date(slot.startTime)
+    const slotDay = new Date(slotStart)
+    slotDay.setHours(0, 0, 0, 0)
+    const checkDay = new Date(day)
+    checkDay.setHours(0, 0, 0, 0)
+
+    if (slotDay.getTime() !== checkDay.getTime()) {
+      return false
+    }
+
+    const slotHour = slotStart.getHours()
+    const slotMinute = slotStart.getMinutes()
+    const roundedMinute = slotMinute < 30 ? 0 : 30
+
+    return slotHour === parseInt(hour) && roundedMinute === parseInt(minute)
+  }
+
+  // Check if a slot is active (spans) at a specific time
+  const isSlotActiveAtTime = (slot: TimeSlot, day: Date, timeString: string): boolean => {
+    const [hour, minute] = timeString.split(":")
+    const timeSlotStart = new Date(day)
+    timeSlotStart.setHours(parseInt(hour), parseInt(minute), 0, 0)
+    const timeSlotEnd = new Date(timeSlotStart)
+    timeSlotEnd.setMinutes(timeSlotEnd.getMinutes() + 30)
+
+    const slotStart = new Date(slot.startTime)
+    const slotEnd = new Date(slot.endTime)
+    const slotDay = new Date(slotStart)
+    slotDay.setHours(0, 0, 0, 0)
+    const checkDay = new Date(day)
+    checkDay.setHours(0, 0, 0, 0)
+
+    if (slotDay.getTime() !== checkDay.getTime()) {
+      return false
+    }
+
+    return slotStart < timeSlotEnd && slotEnd > timeSlotStart
+  }
+
+  // Calculate how many rows a slot spans
+  const getSlotRowSpan = (slot: TimeSlot): number => {
+    const slotStart = new Date(slot.startTime)
+    const slotEnd = new Date(slot.endTime)
+    const durationMs = slotEnd.getTime() - slotStart.getTime()
+    const durationMinutes = durationMs / (1000 * 60)
+    return Math.ceil(durationMinutes / 30)
   }
 
   const isTimeInPast = (day: Date, timeString: string): boolean => {
@@ -265,7 +316,7 @@ export default function TimeSlotCalendar({ slots, teacherId, onSlotClick }: Time
       </div>
 
       {/* Timetable */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-visible">
         <div className="min-w-full">
           {/* Days header */}
           <div className="grid grid-cols-8 gap-1 mb-2">
@@ -296,9 +347,135 @@ export default function TimeSlotCalendar({ slots, teacherId, onSlotClick }: Time
           </div>
 
           {/* Time slots */}
-          <div className="space-y-1">
-            {timeSlots.map((timeString) => (
-              <div key={timeString} className="grid grid-cols-8 gap-1">
+          <div className="space-y-1 relative" style={{ overflow: 'visible' }} id="time-slots-container">
+            {/* Render spanning slot boxes first, positioned absolutely relative to container */}
+            {weekDays.map((day, dayIndex) => {
+              // Get slots that start on this day OR continue from previous day
+              const daySlots = weekSlots.filter(slot => {
+                const slotStart = new Date(slot.startTime)
+                const slotEnd = new Date(slot.endTime)
+                const slotStartDay = new Date(slotStart)
+                slotStartDay.setHours(0, 0, 0, 0)
+                const slotEndDay = new Date(slotEnd)
+                slotEndDay.setHours(0, 0, 0, 0)
+                const checkDay = new Date(day)
+                checkDay.setHours(0, 0, 0, 0)
+                
+                // Include if slot starts on this day OR ends on this day (spans from previous day)
+                return slotStartDay.getTime() === checkDay.getTime() || 
+                       (slotEndDay.getTime() === checkDay.getTime() && slotStartDay.getTime() < checkDay.getTime())
+              })
+              
+              return daySlots.map(slot => {
+                const slotStart = new Date(slot.startTime)
+                const slotEnd = new Date(slot.endTime)
+                const slotStartDay = new Date(slotStart)
+                slotStartDay.setHours(0, 0, 0, 0)
+                const slotEndDay = new Date(slotEnd)
+                slotEndDay.setHours(0, 0, 0, 0)
+                const checkDay = new Date(day)
+                checkDay.setHours(0, 0, 0, 0)
+                
+                // Check if slot spans across midnight
+                const spansMidnight = slotEndDay.getTime() > slotStartDay.getTime()
+                
+                let displayStart: Date
+                let displayEnd: Date
+                let isContinuation = false
+                
+                if (spansMidnight && slotEndDay.getTime() === checkDay.getTime()) {
+                  // This is the continuation part (next day portion)
+                  displayStart = new Date(checkDay)
+                  displayStart.setHours(0, 0, 0, 0)
+                  displayEnd = slotEnd
+                  isContinuation = true
+                } else {
+                  // Normal slot or first part of midnight-spanning slot
+                  displayStart = slotStart
+                  if (spansMidnight) {
+                    // First part ends at end of day
+                    displayEnd = new Date(checkDay)
+                    displayEnd.setHours(23, 59, 59, 999)
+                  } else {
+                    displayEnd = slotEnd
+                  }
+                }
+                
+                const displayStartHour = displayStart.getHours()
+                const displayStartMinute = displayStart.getMinutes()
+                const roundedMinute = displayStartMinute < 30 ? 0 : 30
+                const timeKey = `${displayStartHour}:${String(roundedMinute).padStart(2, '0')}`
+                const timeIndex = timeSlots.indexOf(timeKey)
+                if (timeIndex === -1) return null
+                
+                // Calculate row span for the display portion
+                const durationMs = displayEnd.getTime() - displayStart.getTime()
+                const durationMinutes = durationMs / (1000 * 60)
+                const rowSpan = Math.ceil(durationMinutes / 30)
+                const boxHeight = rowSpan * 60 + (rowSpan - 1) * 4
+                const topPosition = timeIndex * (60 + 4)
+                // Calculate left position: time label (1/8) + dayIndex columns (each 1/8) + padding
+                const leftPercent = (1 + dayIndex) * (100 / 8)
+                const rightPercent = 100 - leftPercent - (100 / 8)
+                
+                return (
+                  <div
+                    key={`span-${slot.id}-${dayIndex}`}
+                    className={`absolute text-xs p-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors cursor-pointer z-30 shadow-md ${isContinuation ? 'opacity-90' : ''}`}
+                    style={{
+                      top: `${topPosition}px`,
+                      left: `calc(${leftPercent}% + 4px)`,
+                      right: `calc(${rightPercent}% + 4px)`,
+                      height: `${boxHeight}px`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSlotClick(slot)
+                    }}
+                    title={`${formatTime(slotStart.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))} - ${formatTime(slotEnd.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))} | MYR ${slot.minPrice.toFixed(2)}`}
+                  >
+                    <div>
+                      {!isContinuation && (
+                        <>
+                          <div className="font-semibold">
+                            {formatTime(slotStart.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))}
+                          </div>
+                          <div className="text-[10px] opacity-90">
+                            MYR {slot.minPrice.toFixed(0)}
+                          </div>
+                          {slot.isGroupSession && (
+                            <div className="text-[10px] opacity-75">
+                              {slot.availableSpots !== undefined && slot.availableSpots > 0
+                                ? `${slot.availableSpots} left`
+                                : "Group"}
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {isContinuation && (
+                        <div className="text-[10px] opacity-75 italic">
+                          Continues from previous day
+                        </div>
+                      )}
+                    </div>
+                    {(rowSpan > 1 || isContinuation) && (
+                      <div className="text-[10px] opacity-75">
+                        {isContinuation 
+                          ? `Until ${formatTime(slotEnd.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))}`
+                          : `Until ${formatTime(displayEnd.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))}`
+                        }
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            }).flat().filter(Boolean)}
+            
+            {timeSlots.map((timeString, timeIndex) => (
+              <div key={timeString} className="grid grid-cols-8 gap-1 relative" style={{ overflow: 'visible' }}>
                 {/* Time label */}
                 <div className="p-2 text-xs text-gray-600 text-right border-r border-gray-200">
                   {formatTime(timeString)}
@@ -309,51 +486,36 @@ export default function TimeSlotCalendar({ slots, teacherId, onSlotClick }: Time
                   const isPast = isTimeInPast(day, timeString)
                   const slots = getSlotsForTime(day, timeString)
                   const hasSlots = slots.length > 0
+                  
+                  // Get all slots that are active at this time (including those that span)
+                  const allSlots = weekSlots.filter(slot => {
+                    const slotDate = new Date(slot.startTime)
+                    const slotDay = new Date(slotDate)
+                    slotDay.setHours(0, 0, 0, 0)
+                    const checkDay = new Date(day)
+                    checkDay.setHours(0, 0, 0, 0)
+                    return slotDay.getTime() === checkDay.getTime() && isSlotActiveAtTime(slot, day, timeString)
+                  })
+                  
+                  // Get slots that start at this time
+                  const startingSlots = allSlots.filter(slot => doesSlotStartAtTime(slot, day, timeString))
+                  const hasActiveSlots = allSlots.length > 0
 
                   return (
                     <div
                       key={dayIndex}
-                      className={`p-1 min-h-[60px] border border-gray-200 rounded ${
+                      className={`p-1 min-h-[60px] border border-gray-200 rounded relative ${
                         isPast
                           ? "bg-gray-100"
-                          : hasSlots
-                          ? "bg-blue-50 hover:bg-blue-100 cursor-pointer"
+                          : hasActiveSlots
+                          ? "bg-blue-50 hover:bg-blue-100"
                           : "bg-white hover:bg-gray-50"
                       } transition-colors`}
+                      style={{ overflow: 'visible' }}
                     >
-                      {hasSlots && !isPast ? (
-                        <div className="space-y-1">
-                          {slots.map((slot) => {
-                            const slotStart = new Date(slot.startTime)
-                            const slotEnd = new Date(slot.endTime)
-                            
-                            return (
-                              <div
-                                key={slot.id}
-                                className="text-xs p-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleSlotClick(slot)
-                                }}
-                                title={`${formatTime(slotStart.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))} - ${formatTime(slotEnd.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))} | MYR ${slot.minPrice.toFixed(2)}`}
-                              >
-                                <div className="font-semibold">
-                                  {formatTime(slotStart.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }))}
-                                </div>
-                                <div className="text-[10px] opacity-90">
-                                  MYR {slot.minPrice.toFixed(0)}
-                                </div>
-                                {slot.isGroupSession && (
-                                  <div className="text-[10px] opacity-75">
-                                    {slot.availableSpots !== undefined && slot.availableSpots > 0
-                                      ? `${slot.availableSpots} left`
-                                      : "Group"}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
+                      {/* Slot boxes are now rendered above, positioned absolutely */}
+                      {hasActiveSlots && !isPast ? (
+                        <div className="h-full"></div>
                       ) : isPast ? (
                         <div className="text-xs text-gray-400 text-center pt-2">Past</div>
                       ) : (
